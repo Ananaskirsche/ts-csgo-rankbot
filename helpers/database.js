@@ -89,36 +89,39 @@ exports.setSteamId64Inactive = function(steam64id){
  * @param steam64id
  */
 exports.isRegistered = function (steam64id) {
-    let connection = mysql.createConnection({
-        host: config.dbConfig.host,
-        port: config.dbConfig.port,
-        user: config.dbConfig.username,
-        password: config.dbConfig.password,
-        database: config.dbConfig.database
+    return new Promise((resolve, reject) => {
+        let connection = mysql.createConnection({
+            host: config.dbConfig.host,
+            port: config.dbConfig.port,
+            user: config.dbConfig.username,
+            password: config.dbConfig.password,
+            database: config.dbConfig.database
+        });
+
+        connection.connect();
+
+        let sql = "SELECT COUNT(steamid64) AS 'idCount' FROM profiles WHERE steamid64 = ?";
+        let inserts = [steam64id];
+        sql = mysql.format(sql, inserts);
+
+        connection.query(sql, (err, result) => {
+            if (err){
+                return reject(err);
+            }
+
+            let idCount = result[0].idCount;
+
+            if(idCount === 0){
+                return resolve(false);
+            }
+            else{
+                return resolve(true);
+            }
+        });
+
+        connection.commit();
+        connection.end();
     });
-
-    connection.connect();
-
-    let sql = "SELECT steamid64 AS 'countIds' FROM profiles WHERE steamid64 = ?";
-    let inserts = [steam64id];
-    sql = mysql.format(sql, inserts);
-
-    var countIds;
-
-    connection.query(sql, (err, result) => {
-        if (err){
-            throw err;
-        }
-        console.log(result);
-        countIds = result;
-    });
-
-    connection.commit();
-    connection.end();
-
-    console.log(countIds);
-
-    return true;
 };
 
 

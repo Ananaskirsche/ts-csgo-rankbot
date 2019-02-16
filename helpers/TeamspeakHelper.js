@@ -25,13 +25,22 @@ class TeamspeakHelper {
                 let parser = new this.xml.Parser();
                 parser.parseString(data, (err, result) => {
                     let steamId64 = result.profile.steamID64[0];
-                    if(!this.dbhandler.isRegistered(steamId64)){
-                        this.dbhandler.registerIdentity(tsUid, steamId64);
-                        console.log("User " + tsNick + " hat sich registriert!");
-                    }
-                    else{
-                        console.log("User " + tsNick + " war bereits registriert!");
-                    }
+
+                    this.dbhandler.isRegistered(steamId64)
+                        .then((isRegistered) => {
+                            if(!isRegistered)
+                            {
+                                this.dbhandler.registerIdentity(tsUid, steamId64);
+                                console.log("User " + tsNick + " hat sich registriert!");
+                            }
+                            else
+                            {
+                                console.log("User " + tsNick + " war bereits registriert!");
+                            }
+                        })
+                        .catch((error) => {
+                            throw error;
+                        });
                 })
             })
             .catch(function (err) {

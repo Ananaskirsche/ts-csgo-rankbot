@@ -36,26 +36,39 @@ class SteamHelper
     onRelationshipChange (steam64id, relationshipStatus){
         if(relationshipStatus === this.Steam.EFriendRelationship.RequestRecipient)
         {
-            if (this.dbhandler.isRegistered(steam64id))
-            {
-                this.steamFriends.addFriend(steam64id);
-                this.dbhandler.setSteamId64Active(steam64id);
-            }
-            else
-            {
-                this.steamFriends.removeFriend(steam64id);
-            }
+            this.dbhandler.isRegistered(steam64id)
+                .then((isRegistered) => {
+                    if(isRegistered)
+                    {
+                        this.steamFriends.addFriend(steam64id);
+                        this.dbhandler.setSteamId64Active(steam64id);
+                    }
+                    else
+                    {
+                        this.steamFriends.removeFriend(steam64id);
+                    }
+                })
+                .catch((error) => {
+                    throw error;
+                });
         }
 
+        // TODO: Machen, dass der Kram klappt
         // Benutzer hat den Bot aus der Freundesliste entfernt, auch aus der
         // DB entfernen
         if(relationshipStatus === this.Steam.EFriendRelationship.Invalid)
         {
-            if (this.dbhandler.isRegistered(steam64id))
-            {
-                this.dbhandler.removeUser(steam64id);
-                this.steamFriends.removeFriend(steam64id);
-            }
+            this.dbhandler.isRegistered(steam64id)
+                .then((isRegistered) => {
+                    if(isRegistered)
+                    {
+                        this.dbhandler.removeUser(steam64id);
+                        this.steamFriends.removeFriend(steam64id);
+                    }
+                })
+                .catch((error) => {
+                    throw error;
+                });
         }
     }
 
@@ -66,15 +79,21 @@ class SteamHelper
     onFriendRequest(steam64id, relationshipStatus){
         if(relationshipStatus === this.Steam.EFriendRelationship.RequestRecipient)
         {
-            if(this.dbhandler.isRegistered(steam64id))
-            {
-                this.steamFriends.addFriend(steam64id);
-                this.dbhandler.setSteamId64Active(steam64id);
-            }
-            else
-            {
-                this.steamFriends.removeFriend(steam64id);
-            }
+            this.dbhandler.isRegistered(steam64id)
+                .then((isRegistered) => {
+                    if(isRegistered)
+                    {
+                        this.steamFriends.addFriend(steam64id);
+                        this.dbhandler.setSteamId64Active(steam64id);
+                    }
+                    else
+                    {
+                        this.steamFriends.removeFriend(steam64id);
+                    }
+                })
+                .catch((error) => {
+                    throw error;
+                });
         }
     }
 
