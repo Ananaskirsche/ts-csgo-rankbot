@@ -1,0 +1,19 @@
+{
+  "name": "ak-csgo-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Ananaskirsche",
+  "dependencies": {
+    "alfred-teamspeak": "^4.0.1",
+    "async": "^2.6.1",
+    "csgo": "^1.5.12",
+    "customurl2steamid64": "^1.1.0",
+    "mysql": "^2.16.0",
+    "node-teamspeak": "^1.0.10",
+    "node-teamspeak-api": "latest",
+    "request-promise": "latest",
+    "steam": "^1.4.0",
+    "ts3-nodejs-library": "^1.12.4",
+    "xml2js": "latest"
+  }
+}
