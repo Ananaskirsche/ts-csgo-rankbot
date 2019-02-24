@@ -2,6 +2,73 @@ const config = require('../config/config.js');
 const mysql = require('mysql');
 
 /**
+ * Returns the Teamspeak UID from database
+ * @param tsuid
+ */
+exports.getSteam64Id = function(tsuid){
+    return new Promise((resolve, reject) => {
+        let connection = mysql.createConnection({
+            host: config.dbConfig.host,
+            port: config.dbConfig.port,
+            user: config.dbConfig.username,
+            password: config.dbConfig.password,
+            database: config.dbConfig.database
+        });
+
+        connection.connect();
+
+        let sql = "SELECT steamid64 FROM profiles WHERE tsuid = ?";
+        let inserts = [tsuid];
+        sql = mysql.format(sql, inserts);
+
+        connection.query(sql, (err, result) => {
+            if (err){
+                return reject(err);
+            }
+
+            resolve(result[0].steamid64);
+        });
+
+        connection.commit();
+        connection.end();
+    });
+};
+
+
+/**
+ * Returns the Teamspeak UID from database
+ * @param steam64id
+ */
+exports.getTsuid = function(steam64id){
+    return new Promise((resolve, reject) => {
+        let connection = mysql.createConnection({
+            host: config.dbConfig.host,
+            port: config.dbConfig.port,
+            user: config.dbConfig.username,
+            password: config.dbConfig.password,
+            database: config.dbConfig.database
+        });
+
+        connection.connect();
+
+        let sql = "SELECT tsuid FROM profiles WHERE steamid64 = ?";
+        let inserts = [steam64id];
+        sql = mysql.format(sql, inserts);
+
+        connection.query(sql, (err, result) => {
+            if (err){
+                return reject(err);
+            }
+
+            resolve(result[0].tsuid);
+        });
+
+        connection.commit();
+        connection.end();
+    });
+};
+
+/**
  *
  * @param tsUID
  * @param steamID64
@@ -18,7 +85,7 @@ exports.registerIdentity = function (tsUID, steamID64)
 
     connection.connect();
 
-    let sql = "INSERT INTO profiles(steamid64, tsuid) VALUES (?,?);";
+    let sql = "INSERT INTO profiles(steamid64, tsuid) VALUES (?,?)";
     let inserts = [steamID64, tsUID];
     sql = mysql.format(sql, inserts);
 
@@ -45,7 +112,7 @@ exports.setSteamId64Active = function (steamID64) {
 
     connection.connect();
 
-    let sql = "UPDATE profiles SET active = true WHERE steamid64 = ?;";
+    let sql = "UPDATE profiles SET active = true WHERE steamid64 = ?";
     let inserts = [steamID64];
     sql = mysql.format(sql, inserts);
 
@@ -72,8 +139,8 @@ exports.setSteamId64Inactive = function(steam64id){
 
     connection.connect();
 
-    let sql = "UPDATE profiles SET active = false WHERE steamid64 = ?;";
-    let inserts = [steamID64];
+    let sql = "UPDATE profiles SET active = false WHERE steamid64 = ?";
+    let inserts = [steam64id];
     sql = mysql.format(sql, inserts);
 
     connection.query(sql);
@@ -141,6 +208,8 @@ exports.removeUser = function (steam64id)
     let sql = "DELETE FROM profiles WHERE steamid64 = ?";
     let inserts = [steam64id];
     sql = mysql.format(sql, inserts);
+
+    connection.query(sql);
 
     connection.commit();
     connection.end();
