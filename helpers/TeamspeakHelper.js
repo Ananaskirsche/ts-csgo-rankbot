@@ -37,6 +37,16 @@ class TeamspeakHelper
 
 
     /**
+     * Removes the given tsClient from given tsServerGroup
+     * @param tsClient
+     * @param tsServerGroup
+     */
+    removeFromRank(tsClient, tsServerGroup)
+    {
+
+    }
+
+    /**
      * Sets Rank in Teamspeak depending von given CS:GO Rank
      * @param tsUid
      * @param csRank
@@ -109,23 +119,41 @@ class TeamspeakHelper
                 break;
         }
 
-        this.ts3.getServerGroupByID(this.rankGroupId).then((serverGroup) =>
+        //Set the rank
+        this.ts3.getClientByUID(tsUid).then((tsClient) =>
         {
-            this.ts3.getClientByUID(tsUid).then((tsClient) =>
+            //Remove all Ranks
+            for(let value of Object.values(this.config.tsRankIds))
             {
-                serverGroup.addClient( tsClient.getDBID() ).catch(() =>
+                tsClient.serverGroupDel(value).catch( () => {} );
+            }
+
+
+            //Add new Rank
+
+            this.ts3.getServerGroupByID(rankGroupId).then((serverGroup) =>
+            {
+                serverGroup.addClient( tsClient.getDBID() ).then(() =>
+                {
+                    tsClient.message("Your skill group was updated!");
+                })
+                .catch(() =>
                 {
                     console.log("An error occured when trying to update user ranks!");
                 });
             });
+
+        }).catch((err) =>
+        {
+            console.log(err);
         });
     }
 
 
 
     /**
-     * TODO: RENAME METHOD TO SOMETHING MORE UNDERSTANDABLE
-     * Registers user
+     * Gets steam64id from community url and then
+     * performs database operations to register the user
      * @param communityUrl
      * @param tsUid
      * @param tsNick
@@ -137,10 +165,13 @@ class TeamspeakHelper
             let parser = new this.xml.Parser();
             parser.parseString(data, (err, result) =>
             {
+                //steam64id from profile
                 let steamId64 = result.profile.steamID64[0];
 
-                this.dbhandler.isRegistered(steamId64).then((isRegistered) =>
+                //Check if already registered
+                this.dbhandler.isRegisteredBySteam64Id(steamId64).then((isRegistered) =>
                 {
+                    //If not registered already, do it now
                     if(!isRegistered)
                     {
                         this.dbhandler.registerIdentity(tsUid, steamId64);
@@ -150,6 +181,25 @@ class TeamspeakHelper
                     {
                         console.log("User " + tsNick + " was already registered!");
                     }
+
+
+                    //Message the user
+                    this.ts3.getClientByUID(tsUid).then((tsClient) =>
+                    {
+                        if(isRegistered)
+                        {
+                            tsClient.message("You are already registered! To update your current rank try !update");
+                        }
+                        else
+                        {
+                            tsClient.message("Successfully registered!");
+                        }
+                    })
+                    .catch((err) =>
+                    {
+                        console.log("An error occurred when trying to get user " + tsUid);
+                        console.log(err);
+                    });
                 })
                 .catch((error) =>
                 {
@@ -241,7 +291,22 @@ class TeamspeakHelper
         //Status Befehl
         if(args[0].toLowerCase() === "!status")
         {
+            this.dbhandler.isRegisteredByTsUid(ev.invoker.getUID()).then((isRegistered) =>
+            {
+                if(isRegistered)
+                {
+                    ev.invoker.message("You are already registered!");
+                }
+                else
+                {
+                    ev.invoker.message("You are not registered yet!");
+                }
 
+            })
+            .catch((err) => {
+                 ev.invoker.message("An error occurred!");
+                 console.log(err);
+            });
         }
     }
 

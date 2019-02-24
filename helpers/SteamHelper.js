@@ -76,7 +76,7 @@ class SteamHelper
     onRelationshipChange (steam64id, relationshipStatus){
         if(relationshipStatus === this.Steam.EFriendRelationship.RequestRecipient)
         {
-            this.dbhandler.isRegistered(steam64id).then((isRegistered) =>
+            this.dbhandler.isRegisteredBySteam64Id(steam64id).then((isRegistered) =>
             {
                     if(isRegistered)
                     {
@@ -99,7 +99,7 @@ class SteamHelper
         // DB entfernen
         if(relationshipStatus === this.Steam.EFriendRelationship.Invalid)
         {
-            this.dbhandler.isRegistered(steam64id).then((isRegistered) =>
+            this.dbhandler.isRegisteredBySteam64Id(steam64id).then((isRegistered) =>
             {
                 if(isRegistered)
                 {
@@ -124,7 +124,7 @@ class SteamHelper
     {
         if(relationshipStatus === this.Steam.EFriendRelationship.RequestRecipient)
         {
-            this.dbhandler.isRegistered(steam64id).then((isRegistered) =>
+            this.dbhandler.isRegisteredBySteam64Id(steam64id).then((isRegistered) =>
             {
                 if(isRegistered)
                 {
@@ -148,7 +148,7 @@ class SteamHelper
         // DB entfernen
         if(relationshipStatus === this.Steam.EFriendRelationship.None)
         {
-            this.dbhandler.isRegistered(steam64id).then((isRegistered) =>
+            this.dbhandler.isRegisteredBySteam64Id(steam64id).then((isRegistered) =>
             {
                 if(isRegistered)
                 {
