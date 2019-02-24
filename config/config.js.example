@@ -4,7 +4,8 @@ exports.tsConfig = {
     serverport: '9987',
     username: 'serveradmin',
     password: 'secret',
-    nickname: 'Alfredo'
+    nickname: 'Alfredo',
+    ts_welcomechannel_id: 0
 };
 
 exports.steamConfig = {
