@@ -13,6 +13,13 @@ class TeamspeakHelper
         this.config = require('../config/config.js');
         this.steamHelper = null;
         this.URL = require('url');
+        this.tsRankSgids = [];
+
+        //Build tsRankSgids so we have it ready when needed, because of performance
+        for(let value of Object.values(this.config.tsRankSgids))
+        {
+            this.tsRankSgids.push(value);
+        }
     }
 
 
@@ -37,16 +44,6 @@ class TeamspeakHelper
 
 
     /**
-     * Removes the given tsClient from given tsServerGroup
-     * @param tsClient
-     * @param tsServerGroup
-     */
-    removeFromRank(tsClient, tsServerGroup)
-    {
-
-    }
-
-    /**
      * Sets Rank in Teamspeak depending von given CS:GO Rank
      * @param tsUid
      * @param csRank
@@ -58,91 +55,118 @@ class TeamspeakHelper
         switch (csRank)
         {
             case 0:
-                rankGroupId = this.config.tsRankIds.unranked;
+                rankGroupId = this.config.tsRankSgids.unranked;
                 break;
             case 1:
-                rankGroupId = this.config.tsRankIds.silver_1;
+                rankGroupId = this.config.tsRankSgids.silver_1;
                 break;
             case 2:
-                rankGroupId = this.config.tsRankIds.silver_2;
+                rankGroupId = this.config.tsRankSgids.silver_2;
                 break;
             case 3:
-                rankGroupId = this.config.tsRankIds.silver_3;
+                rankGroupId = this.config.tsRankSgids.silver_3;
                 break;
             case 4:
-                rankGroupId = this.config.tsRankIds.silver_4;
+                rankGroupId = this.config.tsRankSgids.silver_4;
                 break;
             case 5:
-                rankGroupId = this.config.tsRankIds.silver_elite;
+                rankGroupId = this.config.tsRankSgids.silver_elite;
                 break;
             case 6:
-                rankGroupId = this.config.tsRankIds.silver_elite_master;
+                rankGroupId = this.config.tsRankSgids.silver_elite_master;
                 break;
             case 7:
-                rankGroupId = this.config.tsRankIds.gold_nova_1;
+                rankGroupId = this.config.tsRankSgids.gold_nova_1;
                 break;
             case 8:
-                rankGroupId = this.config.tsRankIds.gold_nova_2;
+                rankGroupId = this.config.tsRankSgids.gold_nova_2;
                 break;
             case 9:
-                rankGroupId = this.config.tsRankIds.gold_nova_3;
+                rankGroupId = this.config.tsRankSgids.gold_nova_3;
                 break;
             case 10:
-                rankGroupId = this.config.tsRankIds.gold_nova_master;
+                rankGroupId = this.config.tsRankSgids.gold_nova_master;
                 break;
             case 11:
-                rankGroupId = this.config.tsRankIds.master_guardian_1;
+                rankGroupId = this.config.tsRankSgids.master_guardian_1;
                 break;
             case 12:
-                rankGroupId = this.config.tsRankIds.master_guardian_2;
+                rankGroupId = this.config.tsRankSgids.master_guardian_2;
                 break;
             case 13:
-                rankGroupId = this.config.tsRankIds.master_guardian_elite;
+                rankGroupId = this.config.tsRankSgids.master_guardian_elite;
                 break;
             case 14:
-                rankGroupId = this.config.tsRankIds.distinguished_master_guardian;
+                rankGroupId = this.config.tsRankSgids.distinguished_master_guardian;
                 break;
             case 15:
-                rankGroupId = this.config.tsRankIds.legendary_eagle;
+                rankGroupId = this.config.tsRankSgids.legendary_eagle;
                 break;
             case 16:
-                rankGroupId = this.config.tsRankIds.legendary_eagle_master;
+                rankGroupId = this.config.tsRankSgids.legendary_eagle_master;
                 break;
             case 17:
-                rankGroupId = this.config.tsRankIds.supreme_master;
+                rankGroupId = this.config.tsRankSgids.supreme_master;
                 break;
             case 18:
-                rankGroupId = this.config.tsRankIds.global_elite;
+                rankGroupId = this.config.tsRankSgids.global_elite;
                 break;
             default:
-                rankGroupId = this.config.tsRankIds.unranked;
+                rankGroupId = this.config.tsRankSgids.unranked;
                 break;
         }
+
 
         //Set the rank
         this.ts3.getClientByUID(tsUid).then((tsClient) =>
         {
-            //Remove all Ranks
-            for(let value of Object.values(this.config.tsRankIds))
+            this.checkUserRankChanged(rankGroupId, tsClient).then((userRankChanged) =>
             {
-                tsClient.serverGroupDel(value).catch( () => {} );
-            }
-
-
-            //Add new Rank
-
-            this.ts3.getServerGroupByID(rankGroupId).then((serverGroup) =>
-            {
-                serverGroup.addClient( tsClient.getDBID() ).then(() =>
+                if(userRankChanged)
                 {
-                    tsClient.message("Your skill group was updated!");
-                })
-                .catch(() =>
+                    //Remove all ranks
+                    tsClient.getInfo().then((info) =>
+                    {
+                        //Get all sgids which are rank server groups and which are assigned to the ts client
+                        let clientGroups = info.client_servergroups;
+                        let sgidIntersection = clientGroups.filter(x => this.tsRankSgids.includes(x));
+
+
+                        //Remove Client from old ranks
+                        let intersectionLenght = sgidIntersection.length;
+                        for(let i = 0; i < intersectionLenght; i++)
+                        {
+                            tsClient.serverGroupDel(sgidIntersection[i].toString()).then(() => {})
+                            .catch( (err) =>
+                            {
+                                console.log(err)
+                            });
+                        }
+
+
+                        //Add new rank
+                        this.ts3.getServerGroupByID(rankGroupId).then((serverGroup) =>
+                        {
+                            serverGroup.addClient( tsClient.getDBID() ).then(() =>
+                            {
+                                tsClient.message("Your skill group was updated!");
+                            })
+                                .catch(() =>
+                                {
+                                    console.log("An error occured when trying to update user ranks!");
+                                });
+                        });
+                    })
+                    .catch((err) =>
+                    {
+                        console.log(err);
+                    });
+                }
+                else
                 {
-                    console.log("An error occured when trying to update user ranks!");
-                });
+                    tsClient.message("Your skill has not changed!");
+                }
             });
-
         }).catch((err) =>
         {
             console.log(err);
@@ -360,6 +384,46 @@ class TeamspeakHelper
         this.ts3.on('textmessage', ev => { this.onMessageReceived(ev); });
         this.ts3.on("error", e => console.log("Error", e.message));
         this.ts3.on("close", e => console.log("Connection has been closed!", e));
+    }
+
+
+    /**
+     * Checks if a given teamspeak client is in the given server rank group.
+     * @param rankGroupId The Teamspeak sgid of the rank server group
+     * @param tsClient The Teamspeak Client to check
+     * @returns {Promise<any>}
+     */
+    checkUserRankChanged(rankGroupId, tsClient)
+    {
+        return new Promise((resolve,reject) =>
+        {
+            this.ts3.getServerGroupByID(rankGroupId).then((tsGroup) =>
+            {
+                tsGroup.clientList().then((clientList) =>
+                {
+                    //Iterate through all members of group
+                    let clientListLenght = clientList.length;
+                    let searchTsClientUID = tsClient.getUID();
+                    for(let i = 0; i < clientListLenght; i++)
+                    {
+                        let clientListEntry = clientList[i];
+                        if(clientListEntry.client_unique_identifier === searchTsClientUID)
+                        {
+                            resolve(false);
+                        }
+                    }
+                    resolve(true);
+                })
+                .catch((err) =>
+                {
+                    reject(err);
+                });
+            })
+            .catch((err) =>
+            {
+                reject(err);
+            });
+        });
     }
 }
 

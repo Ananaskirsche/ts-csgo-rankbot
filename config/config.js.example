@@ -26,7 +26,7 @@ exports.botConfig = {
     greetingMessage: "Welcome!"
 };
 
-exports.tsRankIds = {
+exports.tsRankSgids = {
     unranked: 0,
     silver_1: 1,
     silver_2: 2,
