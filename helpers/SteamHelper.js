@@ -57,11 +57,15 @@ class SteamHelper
     {
         let _self = this;
 
-        this.CSGOCli.on('playerProfile', function (profile)
+        //Check if event handler has already added
+        if(this.CSGOCli._events.playerProfile === undefined)
         {
-            let rank = profile.account_profiles[0].ranking.rank_id;
-            _self.tsHandler.setRank(tsUid, rank);
-        });
+            this.CSGOCli.on('playerProfile', function (profile)
+            {
+                let rank = profile.account_profiles[0].ranking.rank_id;
+                _self.tsHandler.setRank(tsUid, rank);
+            });
+        }
 
         this.CSGOCli.playerProfileRequest(this.CSGOCli.ToAccountID(steam64id));
     }
@@ -201,7 +205,8 @@ class SteamHelper
         {
             try
             {
-                _self.fs.writeFile('./config/.steamservers');
+                _self.fs.writeFile('./config/.steamservers', JSON.stringify(servers));
+                console.log("Updated .steamservers file!");
             }
             catch (e) {
                 console.log('Could not write down new steam servers!');
