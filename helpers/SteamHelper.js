@@ -193,7 +193,6 @@ class SteamHelper
         });
 
 
-        //TODO: Friendrequest-Event and Relationship-Event do the same stuff, put them in one method
         //Friendrequest event
         this.steamFriends.on('friend', (steam64id, relationshipStatus) => {
             _self.onRelationshipChange(steam64id, relationshipStatus);

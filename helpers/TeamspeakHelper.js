@@ -180,7 +180,7 @@ class TeamspeakHelper
                 }
                 else
                 {
-                    tsClient.message("Your skill has not changed!");
+                    tsClient.message("Your skill group has not changed!");
                 }
             });
         }).catch((err) =>
