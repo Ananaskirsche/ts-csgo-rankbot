@@ -15,12 +15,24 @@ class TeamspeakHelper
         this.URL = require('url');
         this.tsRankSgids = [];
         this.logger = require('./LogHelper')(__filename);
+        this.steamProfileUrl = null;
 
         //Build tsRankSgids so we have it ready when needed, because of performance
         for(let value of Object.values(this.config.tsRankSgids))
         {
             this.tsRankSgids.push(value);
         }
+    }
+
+
+
+    /**
+     * Sets the steamProfileUrl
+     * @param profileUrl
+     */
+    setSteamProfileUrl(profileUrl)
+    {
+        this.steamProfileUrl = profileUrl;
     }
 
 
@@ -221,6 +233,11 @@ class TeamspeakHelper
                         else
                         {
                             tsClient.message("Successfully registered!");
+                            if(this.steamProfileUrl !== null)
+                            {
+                                tsClient.message("You need to add the bot to your friendlist! " +
+                                    "Please add [URL]" + this.steamProfileUrl + "/[/URL]!");
+                            }
                         }
                     })
                     .catch((err) =>

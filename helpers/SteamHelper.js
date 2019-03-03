@@ -17,6 +17,7 @@ class SteamHelper
         this.dbhandler = require('./database.js');
         this.tsHandler = tsHandler;
         this.logger = require('./LogHelper')(__filename);
+        this.steamProfileUrl = null;
     }
 
 
@@ -210,6 +211,9 @@ class SteamHelper
             if(response.eresult === _self.Steam.EResult.OK)
             {
                 _self.logger.info("Steam interface logged in successful");
+
+                //Set profile url
+                _self.tsHandler.setSteamProfileUrl("https://steamcommunity.com/profiles/" + response.client_supplied_steamid);
             }
             else
             {
