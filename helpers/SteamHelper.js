@@ -11,11 +11,12 @@ class SteamHelper
         this.steamUser = new this.Steam.SteamUser(this.bot);
         this.steamFriends = new this.Steam.SteamFriends(this.bot);
         this.steamGC = new this.Steam.SteamGameCoordinator(this.bot, 730);
-        this.CSGOCli = new this.csgo.CSGOClient(this.steamUser, this.steamGC, true);
+        this.CSGOCli = new this.csgo.CSGOClient(this.steamUser, this.steamGC, false);
         this.fs = require('fs');
         this.config = require('../config/config');
         this.dbhandler = require('./database.js');
         this.tsHandler = tsHandler;
+        this.logger = require('./LogHelper')(__filename);
     }
 
 
@@ -34,10 +35,10 @@ class SteamHelper
             {
                 this.requestPlayerProfile(steam64id, tsUid);
             })
-            .catch((e) =>
+            .catch((err) =>
             {
-                console.log(e);
-                console.log("Steam ID:" + steam64id);
+                this.logger.error(`Could not get tsuid from steam64id (${steam64id}`);
+                this.logger.error(err);
             });
         }
         else
@@ -56,6 +57,7 @@ class SteamHelper
     requestPlayerProfile(steam64id, tsUid)
     {
         let _self = this;
+        this.logger.debug(`Getting player Profile of steam64id ${steam64id}`);
 
         //Check if event handler has already added
         if(this.CSGOCli._events.playerProfile === undefined)
@@ -63,6 +65,7 @@ class SteamHelper
             this.CSGOCli.on('playerProfile', function (profile)
             {
                 let rank = profile.account_profiles[0].ranking.rank_id;
+                _self.logger.debug(`Got rank ${rank} for steam64id ${steam64id}`);
                 _self.tsHandler.setRank(tsUid, rank);
             });
         }
@@ -78,8 +81,16 @@ class SteamHelper
      * @param relationshipStatus
      */
     onRelationshipChange (steam64id, relationshipStatus){
+        this.logger.debug(`Ǹew relationship event from ${steam64id} (relationship=${relationshipStatus})`);
+        //Null check
+        if(steam64id === undefined || relationshipStatus === undefined)
+        {
+            return;
+        }
+
         if(relationshipStatus === this.Steam.EFriendRelationship.RequestRecipient)
         {
+            this.logger.debug(`Relationship event from ${steam64id}, status=${relationshipStatus}`);
             this.dbhandler.isRegisteredBySteam64Id(steam64id).then((isRegistered) =>
             {
                     if(isRegistered)
@@ -87,64 +98,17 @@ class SteamHelper
                         this.steamFriends.addFriend(steam64id);
                         this.dbhandler.setSteamId64Active(steam64id);
                         this.updateUserRank(steam64id, undefined);
+                        this.logger.debug(`Relationship event from ${steam64id} is ok, added to friendlist`);
                     }
                     else
                     {
+                        this.logger.debug(`Relationship event from ${steam64id}, but is not in db. removing...`);
                         this.steamFriends.removeFriend(steam64id);
                     }
             })
-            .catch((error) =>
+            .catch((err) =>
             {
-                    throw error;
-            });
-        }
-
-        // Benutzer hat den Bot aus der Freundesliste entfernt, auch aus der
-        // DB entfernen
-        if(relationshipStatus === this.Steam.EFriendRelationship.Invalid)
-        {
-            this.dbhandler.isRegisteredBySteam64Id(steam64id).then((isRegistered) =>
-            {
-                if(isRegistered)
-                {
-                    this.dbhandler.removeUser(steam64id);
-                    this.steamFriends.removeFriend(steam64id);
-                }
-            })
-            .catch((error) => {
-                throw error;
-            });
-        }
-    }
-
-
-
-    /**
-     * Event when Steam receives a friend request
-     * @param steam64id Steam ID of the user that sent the friend request
-     * @param relationshipStatus The resulting relationship status
-     */
-    onFriendRequest(steam64id, relationshipStatus)
-    {
-        if(relationshipStatus === this.Steam.EFriendRelationship.RequestRecipient)
-        {
-            this.dbhandler.isRegisteredBySteam64Id(steam64id).then((isRegistered) =>
-            {
-                if(isRegistered)
-                {
-                    this.steamFriends.addFriend(steam64id);
-                    this.dbhandler.setSteamId64Active(steam64id);
-                    this.updateUserRank(steam64id, undefined);
-                }
-                else
-                {
-                    //Anfrage ablehnen
-                    this.steamFriends.removeFriend(steam64id);
-                }
-            })
-            .catch((error) =>
-            {
-                throw error;
+                 this.logger.error(err);
             });
         }
 
@@ -152,6 +116,7 @@ class SteamHelper
         // DB entfernen
         if(relationshipStatus === this.Steam.EFriendRelationship.None)
         {
+            this.logger.debug(`Got removed from ${steam64id} friendlist, removing too...`);
             this.dbhandler.isRegisteredBySteam64Id(steam64id).then((isRegistered) =>
             {
                 if(isRegistered)
@@ -160,8 +125,8 @@ class SteamHelper
                     this.steamFriends.removeFriend(steam64id);
                 }
             })
-            .catch((error) => {
-                throw error;
+            .catch((err) => {
+                this.logger.error(err);
             });
         }
     }
@@ -173,6 +138,7 @@ class SteamHelper
      */
     initSteam()
     {
+        this.logger.info("Starting steam interface");
         var _self = this;
         // Try to use saved server list, else use precompiled
         if (this.fs.existsSync('./config/.steamservers'))
@@ -181,11 +147,12 @@ class SteamHelper
 
             try
             {
+                this.logger.debug("Found .steamservers file, trying to use it");
                 steamServers = JSON.parse(fs.readFileSync('./config/.steamservers'));
             }
             catch (e)
             {
-                console.log("Could not read .steamservers file in config directory. Please delete it!");
+                this.logger.warn("Could not read .steamservers file in config directory. Please delete it!");
                 steamServers = JSON.parse(`[{"host":"162.254.195.47","port":27019},{"host":"162.254.195.47","port":27018},{"host":"162.254.195.46","port":27017},{"host":"162.254.195.44","port":27018},{"host":"162.254.195.45","port":27018},{"host":"162.254.195.44","port":27019},{"host":"162.254.195.45","port":27019},{"host":"162.254.195.44","port":27017},{"host":"162.254.195.46","port":27019},{"host":"162.254.195.45","port":27017},{"host":"162.254.195.46","port":27018},{"host":"162.254.195.47","port":27017},{"host":"162.254.193.47","port":27018},{"host":"162.254.193.6","port":27017},{"host":"162.254.193.46","port":27017},{"host":"162.254.193.7","port":27019},{"host":"162.254.193.6","port":27018},{"host":"162.254.193.6","port":27019},{"host":"162.254.193.47","port":27017},{"host":"162.254.193.46","port":27019},{"host":"162.254.193.7","port":27018},{"host":"162.254.193.47","port":27019},{"host":"162.254.193.7","port":27017},{"host":"162.254.193.46","port":27018},{"host":"155.133.254.132","port":27017},{"host":"155.133.254.132","port":27018},{"host":"205.196.6.75","port":27017},{"host":"155.133.254.133","port":27019},{"host":"155.133.254.133","port":27017},{"host":"155.133.254.133","port":27018},{"host":"155.133.254.132","port":27019},{"host":"205.196.6.67","port":27018},{"host":"205.196.6.67","port":27017},{"host":"205.196.6.75","port":27019},{"host":"205.196.6.67","port":27019},{"host":"205.196.6.75","port":27018},{"host":"162.254.192.108","port":27018},{"host":"162.254.192.100","port":27017},{"host":"162.254.192.101","port":27017},{"host":"162.254.192.108","port":27019},{"host":"162.254.192.109","port":27019},{"host":"162.254.192.100","port":27018},{"host":"162.254.192.108","port":27017},{"host":"162.254.192.101","port":27019},{"host":"162.254.192.109","port":27018},{"host":"162.254.192.101","port":27018},{"host":"162.254.192.109","port":27017},{"host":"162.254.192.100","port":27019},{"host":"162.254.196.68","port":27019},{"host":"162.254.196.83","port":27019},{"host":"162.254.196.68","port":27017},{"host":"162.254.196.67","port":27017},{"host":"162.254.196.67","port":27019},{"host":"162.254.196.83","port":27017},{"host":"162.254.196.84","port":27019},{"host":"162.254.196.84","port":27017},{"host":"162.254.196.83","port":27018},{"host":"162.254.196.68","port":27018},{"host":"162.254.196.84","port":27018},{"host":"162.254.196.67","port":27018},{"host":"155.133.248.53","port":27017},{"host":"155.133.248.50","port":27017},{"host":"155.133.248.51","port":27017},{"host":"155.133.248.52","port":27019},{"host":"155.133.248.53","port":27019},{"host":"155.133.248.52","port":27018},{"host":"155.133.248.52","port":27017},{"host":"155.133.248.51","port":27019},{"host":"155.133.248.53","port":27018},{"host":"155.133.248.50","port":27018},{"host":"155.133.248.51","port":27018},{"host":"155.133.248.50","port":27019},{"host":"155.133.246.69","port":27017},{"host":"155.133.246.68","port":27018},{"host":"155.133.246.68","port":27017},{"host":"155.133.246.69","port":27018},{"host":"155.133.246.68","port":27019},{"host":"155.133.246.69","port":27019},{"host":"162.254.197.42","port":27018},{"host":"146.66.152.10","port":27018}]`);
             }
 
@@ -206,11 +173,11 @@ class SteamHelper
             try
             {
                 _self.fs.writeFile('./config/.steamservers', JSON.stringify(servers));
-                console.log("Updated .steamservers file!");
+                _self.logger.debug("Updated .steamservers file!");
             }
             catch (e) {
-                console.log('Could not write down new steam servers!');
-                console.log(e.message);
+                _self.logger.warn('Could not write down new steam servers!');
+                _self.logger.warn(e.message);
             }
 
             _self.Steam.servers = servers;
@@ -228,13 +195,13 @@ class SteamHelper
         //TODO: Friendrequest-Event and Relationship-Event do the same stuff, put them in one method
         //Friendrequest event
         this.steamFriends.on('friend', (steam64id, relationshipStatus) => {
-            this.onFriendRequest(steam64id, relationshipStatus);
+            _self.onRelationshipChange(steam64id, relationshipStatus);
         });
 
 
         //Relationship event
         this.steamFriends.on('relationships', (steam64id, relationshipStatus) => {
-            this.onRelationshipChange(steam64id, relationshipStatus);
+            _self.onRelationshipChange(steam64id, relationshipStatus);
         });
 
 
@@ -242,11 +209,11 @@ class SteamHelper
         this.bot.on('logOnResponse', (response) => {
             if(response.eresult === _self.Steam.EResult.OK)
             {
-                console.log("Steam Logged On!");
+                _self.logger.info("Steam interface logged in successful");
             }
             else
             {
-                console.log("Steam Failed!");
+                _self.logger.error("Steam interface could not log in!");
                 process.exit(1);
             }
 
@@ -254,10 +221,11 @@ class SteamHelper
             _self.steamFriends.setPersonaState(this.Steam.EPersonaState.Online);
 
             //Start CSGO interface
+            _self.logger.info("Starting CSGO interface");
             _self.CSGOCli.launch();
             _self.CSGOCli.on('ready', () =>
             {
-                console.log("CSGO interface ready!");
+                _self.logger.info("CSGO interface ready!");
             });
         });
     };

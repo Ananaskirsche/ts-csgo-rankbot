@@ -14,6 +14,7 @@
     "request-promise": "latest",
     "steam": "^1.4.0",
     "ts3-nodejs-library": "^1.12.4",
+    "winston": "^3.2.1",
     "xml2js": "latest"
   }
 }

@@ -14,6 +14,7 @@ class TeamspeakHelper
         this.steamHelper = null;
         this.URL = require('url');
         this.tsRankSgids = [];
+        this.logger = require('./LogHelper')(__filename);
 
         //Build tsRankSgids so we have it ready when needed, because of performance
         for(let value of Object.values(this.config.tsRankSgids))
@@ -139,7 +140,8 @@ class TeamspeakHelper
                             tsClient.serverGroupDel(sgidIntersection[i].toString()).then(() => {})
                             .catch( (err) =>
                             {
-                                console.log(err)
+                                this.logger.error(`Could not remove user from sgid ${sgidIntersection[i]}`);
+                                this.logger.error(err.message);
                             });
                         }
 
@@ -150,16 +152,18 @@ class TeamspeakHelper
                             serverGroup.addClient( tsClient.getDBID() ).then(() =>
                             {
                                 tsClient.message("Your skill group was updated!");
+                                this.logger.debug(`Updated skill group of user ${tsClient.getCache().client_nickname}`);
                             })
-                                .catch(() =>
-                                {
-                                    console.log("An error occured when trying to update user ranks!");
-                                });
+                            .catch((err) =>
+                            {
+                                this.logger.error(`An error occured when trying to update ${tsClient.getCache().client_nickname} rank!`);
+                                this.logger.error(err);
+                            });
                         });
                     })
                     .catch((err) =>
                     {
-                        console.log(err);
+                        this.logger.error(err);
                     });
                 }
                 else
@@ -169,7 +173,7 @@ class TeamspeakHelper
             });
         }).catch((err) =>
         {
-            console.log(err);
+            this.logger.error(err);
         });
     }
 
@@ -195,15 +199,15 @@ class TeamspeakHelper
                 //Check if already registered
                 this.dbhandler.isRegisteredBySteam64Id(steamId64).then((isRegistered) =>
                 {
-                    //If not registered already, do it now
+                    //If not registered, add him to db
                     if(!isRegistered)
                     {
                         this.dbhandler.registerIdentity(tsUid, steamId64);
-                        console.log("Registered new user " + tsNick + "!");
+                        this.logger.debug(`New user ${tsNick} added to database`);
                     }
                     else
                     {
-                        console.log("User " + tsNick + " was already registered!");
+                        this.logger.debug(`${tsNick} tried to register, but already is in database`);
                     }
 
 
@@ -221,19 +225,19 @@ class TeamspeakHelper
                     })
                     .catch((err) =>
                     {
-                        console.log("An error occurred when trying to get user " + tsUid);
-                        console.log(err);
+                        this.logger.error("An error occurred when trying to get user " + tsUid);
+                        this.logger.error(err);
                     });
                 })
                 .catch((error) =>
                 {
-                    console.log(error);
+                    this.logger.error(error);
                 });
             })
         })
         .catch(function (err)
         {
-            console.log(err);
+            this.logger.error(err);
         });
     };
 
@@ -260,16 +264,15 @@ class TeamspeakHelper
         if(args[0].toLowerCase() === "!help")
         {
             ev.invoker.message("!register - Verknüpft deine TS-Identität mit deinem Steamprofil!");
-            ev.invoker.message("!unregister - Entfernt deine Verknüpfung");
             ev.invoker.message("!status - Zeigt, ob du bereits verknüpft bist!");
             ev.invoker.message("!update - Überprüft sofort, ob sich dein Rang geändert hat!");
         }
 
 
         //Register Befehl
-        if(args[0].toLowerCase() === "!register")
+        else if(args[0].toLowerCase() === "!register")
         {
-            console.log("User " + ev.invoker.getCache().client_nickname + " registriert sich");
+            this.logger.debug(`User ${ev.invoker.getCache().client_nickname} issued register command`);
 
             //Parameter holen
             let msg = ev.msg;
@@ -292,28 +295,44 @@ class TeamspeakHelper
 
 
         //Instant update
-        if(args[0].toLowerCase() === "!update")
+        else if(args[0].toLowerCase() === "!update")
         {
-            let tsNick = ev.invoker.getCache().client_nickname;
-
-            console.log("Update Befehl von " + tsNick);
-            if(this.steamHelper != null)
+            this.dbhandler.isRegisteredByTsUid(ev.invoker.getUID()).then((isRegistered) =>
             {
-                console.log("Getting Steam64Id of " + tsNick);
-                this.dbhandler.getSteam64Id(ev.invoker.getUID()).then((steam64Id) => {
-                    console.log("Updating Rank of " + tsNick);
-                    this.steamHelper.updateUserRank(steam64Id, ev.invoker.getUID());
-                })
-                .catch((err) => {
-                    console.log(err);
-                    ev.invoker.message("An error occured!");
-                });
-            }
+                if(!isRegistered)
+                {
+                    ev.invoker.message("You are not registered yet. Please use !register");
+                    return;
+                }
+
+                let tsNick = ev.invoker.getCache().client_nickname;
+
+                this.logger.debug(`User ${tsNick} issued update command`);
+                if(this.steamHelper != null)
+                {
+                    this.logger.debug(`Getting steam64id of ${tsNick}`);
+                    this.dbhandler.getSteam64Id(ev.invoker.getUID()).then((steam64Id) =>
+                    {
+                        this.logger.debug(`Updating rank of ${tsNick}`);
+                        this.steamHelper.updateUserRank(steam64Id, ev.invoker.getUID());
+                    })
+                        .catch((err) =>
+                        {
+                            this.logger.error(`An error occured when trying to get steam64id(${ev.invoker.getUID()}) from db`);
+                            this.logger.error(err);
+                            ev.invoker.message("An error occured!");
+                        });
+                }
+            })
+            .catch((err) => {
+                ev.invoker.message("An error occurred!");
+                this.logger.error(err);
+            });
         }
 
 
         //Status Befehl
-        if(args[0].toLowerCase() === "!status")
+        else if(args[0].toLowerCase() === "!status")
         {
             this.dbhandler.isRegisteredByTsUid(ev.invoker.getUID()).then((isRegistered) =>
             {
@@ -329,7 +348,7 @@ class TeamspeakHelper
             })
             .catch((err) => {
                  ev.invoker.message("An error occurred!");
-                 console.log(err);
+                 this.logger.error(err);
             });
         }
     }
@@ -340,8 +359,8 @@ class TeamspeakHelper
      *  Initalizes Teamspeak, connects to server
      */
     initTeamspeak(){
-        console.log("Starting AK CS:GO Bot...");
-        console.log("Connecting to Teamspeak");
+        this.logger.debug("Initializing teamspeak interface");
+        this.logger.info("Connecting to teamspeak...");
 
         //Create a new Connection
         this.ts3 = new this.TeamSpeak({
@@ -359,7 +378,7 @@ class TeamspeakHelper
         //The clientconnect event gets fired when a new Client joins the selected TeamSpeak Server
         this.ts3.on("clientconnect", ev => {
             const client = ev.client;
-            console.log(`Client ${client.getCache().client_nickname} just connected`);
+            this.logger.debug(`Client ${client.getCache().client_nickname} just connected`);
             client.message(this.config.botConfig.greetingMessage);
         });
 
@@ -371,20 +390,20 @@ class TeamspeakHelper
                 this.ts3.registerEvent("channel", this.config.tsConfig.ts_welcomechannel_id),
                 this.ts3.registerEvent("textprivate")
             ]).then(() => {
-                console.log("Teamspeak ready and connected!")
+                this.logger.info("Teamspeak interface connected and ready!");
             }).catch(e => {
-                console.log("Could not register event handlers! Bot will not work properly!");
-                console.log(e.message);
-
+                this.logger.error("Could not register event handlers!");
+                this.logger.error(e.message);
                 process.exit(1);
             });
         });
 
 
         this.ts3.on('textmessage', ev => { this.onMessageReceived(ev); });
-        this.ts3.on("error", e => console.log("Error", e.message));
-        this.ts3.on("close", e => console.log("Connection has been closed!", e));
+        this.ts3.on("error", e => this.logger.error(e.message));
+        this.ts3.on("close", e => this.logger.error("Connection has been lost! ", e.message) );
     }
+
 
 
     /**
