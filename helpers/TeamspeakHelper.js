@@ -445,8 +445,6 @@ class TeamspeakHelper
                     }
 
                     //Iterate through all members of group
-                    //TODO: clientListLenght kann = null sein
-                    //TODO: wann und wieso? Fallbehandlung!
                     let clientListLenght = clientList.length;
                     let searchTsClientUID = tsClient.getUID();
                     for(let i = 0; i < clientListLenght; i++)
