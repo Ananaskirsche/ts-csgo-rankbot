@@ -274,11 +274,11 @@ class TeamspeakHelper
             return null;
         }
 
-        let args = ev.msg.split(" ");
+        let cmd = ev.msg.split(" ");
 
 
         //Help Befehl
-        if(args[0].toLowerCase() === "!help")
+        if(cmd[0].toLowerCase() === "!help")
         {
             ev.invoker.message("!register - Verknüpft deine TS-Identität mit deinem Steamprofil!");
             ev.invoker.message("!status - Zeigt, ob du bereits verknüpft bist!");
@@ -287,16 +287,20 @@ class TeamspeakHelper
 
 
         //Register Befehl
-        else if(args[0].toLowerCase() === "!register")
+        else if(cmd[0].toLowerCase() === "!register")
         {
+            //Args lenght check
+            if(cmd.length !== 2)
+            {
+                ev.invoker.message("!register <your steam profile url>");
+                return null;
+            }
+
+
             this.logger.debug(`User ${ev.invoker.getCache().client_nickname} issued register command`);
 
-            //Parameter holen
-            let msg = ev.msg;
-            let args = msg.split(" ");
-
             //URL bauen & validieren
-            let communityUrl = args[1];
+            let communityUrl = cmd[1];
             communityUrl = communityUrl.replace("[URL]", "");
             communityUrl = communityUrl.replace("[/URL]", "");
 
@@ -312,7 +316,7 @@ class TeamspeakHelper
 
 
         //Instant update
-        else if(args[0].toLowerCase() === "!update")
+        else if(cmd[0].toLowerCase() === "!update")
         {
             this.dbhandler.isRegisteredByTsUid(ev.invoker.getUID()).then((isRegistered) =>
             {
@@ -349,7 +353,7 @@ class TeamspeakHelper
 
 
         //Status Befehl
-        else if(args[0].toLowerCase() === "!status")
+        else if(cmd[0].toLowerCase() === "!status")
         {
             this.dbhandler.isRegisteredByTsUid(ev.invoker.getUID()).then((isRegistered) =>
             {
