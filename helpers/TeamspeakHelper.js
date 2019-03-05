@@ -437,7 +437,16 @@ class TeamspeakHelper
             {
                 tsGroup.clientList().then((clientList) =>
                 {
+                    //if client has no groups at all, clientList will be null
+                    if(clientList === null)
+                    {
+                        resolve(true);
+                        return;
+                    }
+
                     //Iterate through all members of group
+                    //TODO: clientListLenght kann = null sein
+                    //TODO: wann und wieso? Fallbehandlung!
                     let clientListLenght = clientList.length;
                     let searchTsClientUID = tsClient.getUID();
                     for(let i = 0; i < clientListLenght; i++)
@@ -446,6 +455,7 @@ class TeamspeakHelper
                         if(clientListEntry.client_unique_identifier === searchTsClientUID)
                         {
                             resolve(false);
+                            return;
                         }
                     }
                     resolve(true);

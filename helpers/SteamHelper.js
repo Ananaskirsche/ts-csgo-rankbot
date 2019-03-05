@@ -65,9 +65,28 @@ class SteamHelper
         {
             this.CSGOCli.on('playerProfile', function (profile)
             {
-                let rank = profile.account_profiles[0].ranking.rank_id;
-                _self.logger.debug(`Got rank ${rank} for steam64id ${steam64id}`);
-                _self.tsHandler.setRank(tsUid, rank);
+                let ranking = profile.account_profiles[0].ranking;
+
+                //rank = null if user has not added the bot to friendlist. We need to check that first!
+                if(ranking !== null)
+                {
+                    _self.logger.debug(`Got rank ${ranking.rank_id} for steam64id ${steam64id}`);
+                    _self.tsHandler.setRank(tsUid, ranking.rank_id);
+                }
+                else
+                {
+                    //tell user that we haven't found his rank
+                    _self.logger.debug(`Could not get a rank for ${steam64id}`);
+                    _self.tsHandler.ts3.getClientByUID(tsUid).then((tsClient) =>
+                    {
+                        tsClient.message("I could not find your rank! Did you added me to your friend list?");
+                    })
+                    .catch((err) =>
+                    {
+                        _self.logger.error(`Could not get ts client by uid (${tsUid})`);
+                        _self.logger.error(err);
+                    });
+                }
             });
         }
 
