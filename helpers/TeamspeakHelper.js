@@ -385,7 +385,7 @@ class TeamspeakHelper
 
         //Create a new Connection
         this.ts3 = new this.TeamSpeak({
-            protocol: 'ssh',
+            protocol: (this.config.tsConfig.ssh) ? 'ssh' : 'raw',
             host: this.config.tsConfig.host,
             queryport: this.config.tsConfig.queryport,
             serverport: this.config.tsConfig.serverport,

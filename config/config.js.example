@@ -5,6 +5,7 @@ exports.tsConfig = {
     username: 'serveradmin',
     password: 'secret',
     nickname: 'Alfredo',
+    ssh: false,
     ts_welcomechannel_id: 0
 };
 
