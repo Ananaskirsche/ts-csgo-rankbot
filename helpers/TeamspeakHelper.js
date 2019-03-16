@@ -133,6 +133,8 @@ class TeamspeakHelper
         //Set the rank
         this.ts3.getClientByUID(tsUid).then((tsClient) =>
         {
+            let clientNick = tsClient.getCache().client_nickname;
+
             this.checkUserRankChanged(rankGroupId, tsClient).then((userRankChanged) =>
             {
                 if(userRankChanged)
@@ -152,7 +154,7 @@ class TeamspeakHelper
                             tsClient.serverGroupDel(sgidIntersection[i].toString()).then(() => {})
                             .catch( (err) =>
                             {
-                                this.logger.error(`Could not remove user from sgid ${sgidIntersection[i]}`);
+                                this.logger.error(`Could not remove user ${clientNick} from sgid ${sgidIntersection[i]}`);
                                 this.logger.error(err.message);
                             });
                         }
@@ -164,11 +166,11 @@ class TeamspeakHelper
                             serverGroup.addClient( tsClient.getDBID() ).then(() =>
                             {
                                 tsClient.message("Your skill group was updated!");
-                                this.logger.debug(`Updated skill group of user ${tsClient.getCache().client_nickname}`);
+                                this.logger.debug(`Updated skill group of user ${clientNick}`);
                             })
                             .catch((err) =>
                             {
-                                this.logger.error(`An error occured when trying to update ${tsClient.getCache().client_nickname} rank!`);
+                                this.logger.error(`An error occured when trying to update ${clientNick} rank!`);
                                 this.logger.error(err);
                             });
                         });
@@ -181,6 +183,7 @@ class TeamspeakHelper
                 else
                 {
                     tsClient.message("Your skill group has not changed!");
+                    this.logger.debug(`Rank of ${clientNick} has not changed!`)
                 }
             });
         }).catch((err) =>
@@ -448,18 +451,34 @@ class TeamspeakHelper
                         return;
                     }
 
+                    //Get the UID to search for
+                    let searchTsClientUID = tsClient.getUID();
+
                     //Iterate through all members of group
                     let clientListLenght = clientList.length;
-                    let searchTsClientUID = tsClient.getUID();
-                    for(let i = 0; i < clientListLenght; i++)
+
+                    //clientList is just an object if there is just one client in that group
+                    if(clientListLenght === undefined)
                     {
-                        let clientListEntry = clientList[i];
-                        if(clientListEntry.client_unique_identifier === searchTsClientUID)
+                        if(clientList.client_unique_identifier === searchTsClientUID)
                         {
                             resolve(false);
                             return;
                         }
                     }
+                    else
+                    {
+                        for(let i = 0; i < clientListLenght; i++)
+                        {
+                            let clientListEntry = clientList[i];
+                            if(clientListEntry.client_unique_identifier === searchTsClientUID)
+                            {
+                                resolve(false);
+                                return;
+                            }
+                        }
+                    }
+
                     resolve(true);
                 })
                 .catch((err) =>
