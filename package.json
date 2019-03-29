@@ -4,15 +4,16 @@
   "main": "index.js",
   "author": "Ananaskirsche",
   "dependencies": {
-    "async": "^2.6.1",
+    "async": "^2.6.2",
     "csgo": "^1.5.12",
     "mysql": "^2.16.0",
     "node-teamspeak": "^1.0.10",
-    "node-teamspeak-api": "latest",
-    "request-promise": "latest",
-    "steam": "^1.4.0",
-    "ts3-nodejs-library": "^1.12.4",
+    "node-teamspeak-api": "^1.0.0",
+    "request-promise": "^4.2.4",
+    "steam": "^1.4.1",
+    "ts3-nodejs-library": "^1.12.5",
     "winston": "^3.2.1",
-    "xml2js": "latest"
+    "xml2js": "^0.4.19",
+    "request": "^2.88.0"
   }
 }

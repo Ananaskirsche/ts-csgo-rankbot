@@ -131,8 +131,10 @@ class TeamspeakHelper
 
 
         //Set the rank
-        this.ts3.getClientByUID(tsUid).then((tsClient) =>
+        this.ts3.clientList({client_type: 0, client_unique_identifier: tsUid}).then((tsClientList) =>
         {
+            let tsClient = tsClientList[0];
+
             let clientNick = tsClient.getCache().client_nickname;
 
             this.checkUserRankChanged(rankGroupId, tsClient).then((userRankChanged) =>
@@ -182,8 +184,9 @@ class TeamspeakHelper
                 }
                 else
                 {
+
                     tsClient.message("Your skill group has not changed!");
-                    this.logger.debug(`Rank of ${clientNick} has not changed!`)
+                    this.logger.debug(`Rank of ${tsClientInfo.client_nickname} has not changed!`)
                 }
             });
         }).catch((err) =>
@@ -227,11 +230,14 @@ class TeamspeakHelper
 
 
                     //Message the user
-                    this.ts3.getClientByUID(tsUid).then((tsClient) =>
+                    this.ts3.clientList({client_type: 0, client_unique_identifier: tsUid}).then((tsClientList) =>
                     {
+                        let tsClient = tsClientList[0];
                         if(isRegistered)
                         {
-                            tsClient.message("You are already registered! To update your current rank try !update");
+                            tsClient.message("You are already registered! To update your current rank try !update")
+                                .then(() => {})
+                                .catch(() => {});
                         }
                         else
                         {
