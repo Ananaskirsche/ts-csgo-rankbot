@@ -25,16 +25,17 @@ class SteamHelper
     /**
      * Returns the rank of a steam user
      * @param steam64id
-     * @param tsUid Die tsUid vom Benutzer. Wenn gleich undefined, dann wird die tsUid aus der DB geholt
+     * @param tsUid tsUid of client. If undefined will get from database
+     * @param messageUser Shall the user get a message when his rank gets updated
      */
-    updateUserRank(steam64id, tsUid)
+    updateUserRank(steam64id, tsUid, messageUser = true)
     {
         //TS UID ist undefinied, manuell aus der Datenbank holen
         if(tsUid === undefined)
         {
             this.dbhandler.getTsuid(steam64id).then((tsUid) =>
             {
-                this.requestPlayerProfile(steam64id, tsUid);
+                this.requestPlayerProfile(steam64id, tsUid, messageUser);
             })
             .catch((err) =>
             {
@@ -44,18 +45,18 @@ class SteamHelper
         }
         else
         {
-            this.requestPlayerProfile(steam64id, tsUid);
+            this.requestPlayerProfile(steam64id, tsUid, messageUser);
         }
     }
-
 
 
     /**
      * Requests Player Profile from CSGO and sets Rank in TS
      * @param steam64id
      * @param tsUid
+     * @param messageUser
      */
-    requestPlayerProfile(steam64id, tsUid)
+    requestPlayerProfile(steam64id, tsUid, messageUser = true)
     {
         let _self = this;
         this.logger.debug(`Getting player Profile of steam64id ${steam64id}`);
@@ -69,7 +70,7 @@ class SteamHelper
             if(ranking !== null)
             {
                 _self.logger.debug(`Got rank ${ranking.rank_id} for steam64id ${steam64id}`);
-                _self.tsHandler.setRank(tsUid, ranking.rank_id);
+                _self.tsHandler.setRank(tsUid, ranking.rank_id, messageUser);
             }
             else
             {

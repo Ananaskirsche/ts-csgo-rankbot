@@ -60,8 +60,9 @@ class TeamspeakHelper
      * Sets Rank in Teamspeak depending von given CS:GO Rank
      * @param tsUid
      * @param csRank
+     * @param messageUser
      */
-    setRank(tsUid, csRank)
+    setRank(tsUid, csRank, messageUser = true)
     {
         let rankGroupId = null;
 
@@ -134,7 +135,6 @@ class TeamspeakHelper
         this.ts3.clientList({client_type: 0, client_unique_identifier: tsUid}).then((tsClientList) =>
         {
             let tsClient = tsClientList[0];
-
             let clientNick = tsClient.getCache().client_nickname;
 
             this.checkUserRankChanged(rankGroupId, tsClient).then((userRankChanged) =>
@@ -167,7 +167,10 @@ class TeamspeakHelper
                         {
                             serverGroup.addClient( tsClient.getDBID() ).then(() =>
                             {
-                                tsClient.message("Your skill group was updated!");
+                                if(messageUser)
+                                {
+                                    tsClient.message("Your skill group was updated!");
+                                }
                                 this.logger.debug(`Updated skill group of user ${clientNick}`);
                             })
                             .catch((err) =>
@@ -184,9 +187,11 @@ class TeamspeakHelper
                 }
                 else
                 {
-
-                    tsClient.message("Your skill group has not changed!");
-                    this.logger.debug(`Rank of ${tsClientInfo.client_nickname} has not changed!`)
+                    if(messageUser)
+                    {
+                        tsClient.message("Your skill group has not changed!");
+                    }
+                    this.logger.debug(`Rank of ${tsClient.client_nickname} has not changed!`)
                 }
             });
         }).catch((err) =>
@@ -432,6 +437,9 @@ class TeamspeakHelper
         this.ts3.on('textmessage', ev => { this.onMessageReceived(ev); });
         this.ts3.on("error", e => this.logger.error(e.message));
         this.ts3.on("close", e => this.logger.error("Connection has been lost! ", e.message) );
+
+        //Register Update timer
+        setInterval(this.checkIntervalTick.bind(this), this.config.botConfig.checkIntervalTime * 60000);
     }
 
 
@@ -496,6 +504,59 @@ class TeamspeakHelper
             {
                 reject(err);
             });
+        });
+    }
+
+
+    /**
+     * Background update timer tick
+     */
+    checkIntervalTick()
+    {
+        this.logger.debug("Update timer tick!");
+
+        //Get all online clients
+        this.ts3.clientList({client_type: 0}).then((clientList) =>
+        {
+            //Get tsUid from client list
+            let onlineUids = [];
+            let clientListLength = clientList.length;
+
+            for(let i = 0; i < clientListLength; i++)
+            {
+                onlineUids.push(clientList[i].getUID());
+            }
+
+            //Get all registered tsUids
+            this.dbhandler.getAllActiveTsUids().then((registeredUids) =>
+            {
+                //Get clients which are online and registered
+                let onlineRegisteredUids = registeredUids.filter(x => onlineUids.includes(x));
+                let onlineRegisteredUidsLength = onlineRegisteredUids.length;
+
+
+                //Update rank of every client
+                for(let i = 0; i < onlineRegisteredUidsLength; i++)
+                {
+                    let tsUid = onlineRegisteredUids[i];
+
+                    this.dbhandler.getSteam64Id(tsUid).then((steam64id) =>
+                    {
+                        this.steamHelper.updateUserRank(steam64id, tsUid, false);
+                    })
+                    .catch((err) =>
+                    {
+                        this.logger.error(err);
+                    })
+                }
+            })
+            .catch((err) => {
+                this.logger.error(err);
+            });
+        })
+        .catch((err) =>
+        {
+            this.logger.error(err);
         });
     }
 }

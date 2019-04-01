@@ -68,6 +68,50 @@ exports.getTsuid = function(steam64id){
     });
 };
 
+
+
+/**
+ * Returns all registered tsUids
+ */
+exports.getAllActiveTsUids = function(){
+    return new Promise((resolve, reject) => {
+        let connection = mysql.createConnection({
+            host: config.dbConfig.host,
+            port: config.dbConfig.port,
+            user: config.dbConfig.username,
+            password: config.dbConfig.password,
+            database: config.dbConfig.database
+        });
+
+        connection.connect();
+
+        let sql = "SELECT tsuid FROM profiles WHERE active = 1";
+        sql = mysql.format(sql);
+
+        connection.query(sql, (err, result) => {
+            if (err){
+                return reject(err);
+            }
+
+            let responseArray = [];
+            let resultLength = result.length;
+
+
+            for(let i = 0; i < resultLength; i++)
+            {
+                responseArray.push(result[i].tsuid);
+            }
+
+            resolve(responseArray);
+        });
+
+        connection.commit();
+        connection.end();
+    });
+};
+
+
+
 /**
  *
  * @param tsUID
