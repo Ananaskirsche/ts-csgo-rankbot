@@ -24,7 +24,9 @@ exports.dbConfig = {
 };
 
 exports.botConfig = {
-    greetingMessage: "Welcome!"
+    greetingMessage: "Welcome!",
+    //Every n minute check for rank change
+    checkIntervalTime: 10
 };
 
 exports.tsRankSgids = {
