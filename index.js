@@ -1,3 +1,5 @@
+const Teamspeak = require('./teamspeak');
+
 const SteamHelper = require('./helpers/SteamHelper');
 const TeamspeakHelper = require('./helpers/TeamspeakHelper');
 const fs = require('fs');
@@ -9,10 +11,15 @@ if(!fs.existsSync(logDir))
     fs.mkdirSync(logDir);
 }
 
-//Initialize teamspeak and steam
-let teamspeakHelper = new TeamspeakHelper();
-let steamHelper = new SteamHelper(teamspeakHelper);
-teamspeakHelper.steamHelper = steamHelper;
+//Check if config exists
+if(!fs.existsSync("config/config.js")){
+    if(fs.existsSync("config/config.js.example")){
+        fs.copyFileSync("config/config.js.example", "config/config.js");
+    }
 
-steamHelper.initSteam();
-teamspeakHelper.initTeamspeak();
+    console.log("The bot was not configured! Please configure it properly and then try again!");
+    return;
+}
+
+let ts = new Teamspeak();
+ts.startTeamspeak();

@@ -2,7 +2,7 @@ const config = require('../config/config.js');
 const mysql = require('mysql');
 
 /**
- * Returns the Teamspeak UID from database
+ * Returns the steam64id for the connected ts uid
  * @param tsuid
  */
 exports.getSteam64Id = function(tsuid){
@@ -35,8 +35,9 @@ exports.getSteam64Id = function(tsuid){
 };
 
 
+
 /**
- * Returns the Teamspeak UID from database
+ * Returns the Teamspeak UID for the connected steam64id
  * @param steam64id
  */
 exports.getTsuid = function(steam64id){
@@ -113,11 +114,11 @@ exports.getAllActiveTsUids = function(){
 
 
 /**
- *
+ * Adds an new identity to the database
  * @param tsUID
  * @param steamID64
  */
-exports.registerIdentity = function (tsUID, steamID64)
+exports.addIdentity = function (tsUID, steamID64)
 {
     let connection = mysql.createConnection({
         host: config.dbConfig.host,
@@ -283,7 +284,11 @@ exports.isRegisteredBySteam64Id = function (steam64id) {
 
 
 
-exports.removeUser = function (steam64id)
+/**
+ * Deletes the identity from the database
+ * @param steam64id Steam64Id of the connected Identity
+ */
+exports.deleteIdentity = function (steam64id)
 {
     let connection = mysql.createConnection({
         host: config.dbConfig.host,

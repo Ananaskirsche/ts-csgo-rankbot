@@ -17,7 +17,7 @@ class TeamspeakHelper
         this.logger = require('./LogHelper')(__filename);
         this.steamProfileUrl = null;
 
-        //Build tsRankSgids so we have it ready when needed, because of performance
+        //Build tsRankSgids so we have it ready when needed
         for(let value of Object.values(this.config.tsRankSgids))
         {
             this.tsRankSgids.push(value);

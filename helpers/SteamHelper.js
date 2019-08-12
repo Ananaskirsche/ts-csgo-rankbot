@@ -50,6 +50,7 @@ class SteamHelper
     }
 
 
+
     /**
      * Requests Player Profile from CSGO and sets Rank in TS
      * @param steam64id

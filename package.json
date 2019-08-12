@@ -3,17 +3,16 @@
   "version": "1.0.0",
   "main": "index.js",
   "author": "Ananaskirsche",
+  "description": "Bot that synchronizes the Counter-Strike:Global Offensive ranks with TeamSpeak ranks ",
+  "license": "",
   "dependencies": {
-    "async": "^2.6.2",
     "csgo": "^1.5.12",
-    "mysql": "^2.16.0",
-    "node-teamspeak": "^1.0.10",
-    "node-teamspeak-api": "^1.0.0",
+    "mysql": "^2.17.1",
+    "request": "^2.88.0",
     "request-promise": "^4.2.4",
     "steam": "^1.4.1",
-    "ts3-nodejs-library": "^1.12.5",
+    "ts3-nodejs-library": "^2.0.2",
     "winston": "^3.2.1",
-    "xml2js": "^0.4.19",
-    "request": "^2.88.0"
+    "xmldoc": "^1.1.2"
   }
 }
