@@ -1,4 +1,4 @@
-const config = require('../config/config.js');
+const config = require('./config/config.js');
 const mysql = require('mysql');
 
 /**
@@ -17,7 +17,7 @@ exports.getSteam64Id = function(tsuid){
 
         connection.connect();
 
-        let sql = "SELECT steamid64 FROM profiles WHERE tsuid = ?";
+        let sql = "SELECT steam64id FROM profiles WHERE tsuid = ?";
         let inserts = [tsuid];
         sql = mysql.format(sql, inserts);
 
@@ -26,7 +26,7 @@ exports.getSteam64Id = function(tsuid){
                 return reject(err);
             }
 
-            resolve(result[0].steamid64);
+            resolve(result[0].steam64id);
         });
 
         connection.commit();
@@ -52,7 +52,7 @@ exports.getTsuid = function(steam64id){
 
         connection.connect();
 
-        let sql = "SELECT tsuid FROM profiles WHERE steamid64 = ?";
+        let sql = "SELECT tsuid FROM profiles WHERE steam64id = ?";
         let inserts = [steam64id];
         sql = mysql.format(sql, inserts);
 
@@ -116,9 +116,9 @@ exports.getAllActiveTsUids = function(){
 /**
  * Adds an new identity to the database
  * @param tsUID
- * @param steamID64
+ * @param steam64id
  */
-exports.addIdentity = function (tsUID, steamID64)
+exports.addIdentity = function (tsUID, steam64id)
 {
     let connection = mysql.createConnection({
         host: config.dbConfig.host,
@@ -130,8 +130,8 @@ exports.addIdentity = function (tsUID, steamID64)
 
     connection.connect();
 
-    let sql = "INSERT INTO profiles(steamid64, tsuid) VALUES (?,?)";
-    let inserts = [steamID64, tsUID];
+    let sql = "INSERT INTO profiles(steam64id, tsuid) VALUES (?,?)";
+    let inserts = [steam64id, tsUID];
     sql = mysql.format(sql, inserts);
 
     connection.query(sql);
@@ -148,9 +148,9 @@ exports.addIdentity = function (tsUID, steamID64)
 
 /**
  * Sets the given steam64id active
- * @param steamID64
+ * @param steam64id
  */
-exports.setSteamId64Active = function (steamID64) {
+exports.setsteam64idActive = function (steam64id) {
     let connection = mysql.createConnection({
         host: config.dbConfig.host,
         port: config.dbConfig.port,
@@ -161,8 +161,8 @@ exports.setSteamId64Active = function (steamID64) {
 
     connection.connect();
 
-    let sql = "UPDATE profiles SET active = true WHERE steamid64 = ?";
-    let inserts = [steamID64];
+    let sql = "UPDATE profiles SET active = true WHERE steam64id = ?";
+    let inserts = [steam64id];
     sql = mysql.format(sql, inserts);
 
     connection.query(sql);
@@ -177,7 +177,7 @@ exports.setSteamId64Active = function (steamID64) {
  *
  * @param steam64id
  */
-exports.setSteamId64Inactive = function(steam64id){
+exports.setSteam64idInactive = function(steam64id){
     let connection = mysql.createConnection({
         host: config.dbConfig.host,
         port: config.dbConfig.port,
@@ -188,7 +188,7 @@ exports.setSteamId64Inactive = function(steam64id){
 
     connection.connect();
 
-    let sql = "UPDATE profiles SET active = false WHERE steamid64 = ?";
+    let sql = "UPDATE profiles SET active = false WHERE steam64id = ?";
     let inserts = [steam64id];
     sql = mysql.format(sql, inserts);
 
@@ -216,7 +216,7 @@ exports.isRegisteredByTsUid = function (tsuid) {
 
         connection.connect();
 
-        let sql = "SELECT COUNT(steamid64) AS 'idCount' FROM profiles WHERE tsuid = ?";
+        let sql = "SELECT COUNT(steam64id) AS 'idCount' FROM profiles WHERE tsuid = ?";
         let inserts = [tsuid];
         sql = mysql.format(sql, inserts);
 
@@ -258,7 +258,7 @@ exports.isRegisteredBySteam64Id = function (steam64id) {
 
         connection.connect();
 
-        let sql = "SELECT COUNT(steamid64) AS 'idCount' FROM profiles WHERE steamid64 = ?";
+        let sql = "SELECT COUNT(steam64id) AS 'idCount' FROM profiles WHERE steam64id = ?";
         let inserts = [steam64id];
         sql = mysql.format(sql, inserts);
 
@@ -300,7 +300,7 @@ exports.deleteIdentity = function (steam64id)
 
     connection.connect();
 
-    let sql = "DELETE FROM profiles WHERE steamid64 = ?";
+    let sql = "DELETE FROM profiles WHERE steam64id = ?";
     let inserts = [steam64id];
     sql = mysql.format(sql, inserts);
 

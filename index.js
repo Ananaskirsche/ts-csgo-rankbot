@@ -1,4 +1,5 @@
 const Teamspeak = require('./teamspeak');
+const Steam = require('./steam');
 
 const SteamHelper = require('./helpers/SteamHelper');
 const TeamspeakHelper = require('./helpers/TeamspeakHelper');
@@ -22,4 +23,7 @@ if(!fs.existsSync("config/config.js")){
 }
 
 let ts = new Teamspeak();
+let steam = new Steam();
+
+steam.startSteam();
 ts.startTeamspeak();

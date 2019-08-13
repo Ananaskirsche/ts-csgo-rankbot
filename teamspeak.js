@@ -1,6 +1,7 @@
 const {TeamSpeak} = require("ts3-nodejs-library");
 const SteamHandler = require("./steam");
 const URL = require("url");
+const database = require("./database");
 
 
 class Teamspeak {
@@ -73,8 +74,11 @@ class Teamspeak {
                 let steam64id = await SteamHandler.getSteamIdFromProfile(communityUrl);
                 let tsUid = client.uniqueIdentifier;
 
+                //Save Identity to database
+                database.addIdentity(tsUid, steam64id);
 
-
+                //Message the user to add the bot account
+                client.message("Bitte füge [url=" + SteamHandler.steamProfileUrl +"]den Bot[/url] zu deiner Steam Freundesliste hinzu!");
 
             } else {
                 ev.invoker.message("Deine Profil-URL scheint nicht richtig zu sein!");
