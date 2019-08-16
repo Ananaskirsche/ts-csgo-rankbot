@@ -150,7 +150,7 @@ exports.addIdentity = function (tsUID, steam64id)
  * Sets the given steam64id active
  * @param steam64id
  */
-exports.setsteam64idActive = function (steam64id) {
+exports.setSteam64idActive = function (steam64id) {
     let connection = mysql.createConnection({
         host: config.dbConfig.host,
         port: config.dbConfig.port,

@@ -6,30 +6,135 @@ const steamApi = require("steam");
 const csgo = require("csgo");
 const fs = require('fs');
 const config = require('./config/config');
+const database = require("./database");
+const BroadcastChannel = require('broadcast-channel');
+const exchangeChannel = new BroadcastChannel('exchange');
+
 module.exports.steamProfileUrl = null;
+
 
 
 class Steam {
 
     /**
      * Constructor
+     * @param teamspeak An instance of teamspeak.js so we can access Teamspeak methods
      */
-    constructor(){
+    constructor(teamspeak){
         this.SteamClient = new steamApi.SteamClient();
         this.SteamUser = new steamApi.SteamUser(this.SteamClient);
         this.SteamGC = new steamApi.SteamGameCoordinator(this.SteamClient, 730);
         this.SteamFriends = new steamApi.SteamFriends(this.SteamClient);
         this.CSGOCli = new csgo.CSGOClient(this.SteamUser, this.SteamGC, true);
+        this.Teamspeak = teamspeak;
+    }
+
+
+    /**
+     * Returns the
+     * @param steam64id
+     * @return rank id if set; else null
+     */
+    async getCSGORankOfSteam64id(steam64id){
+        return new Promise((resolve => {
+            logger.debug(`Getting player Profile of steam64id ${steam64id}`);
+
+            //Register event listener for one time use
+            this.CSGOCli.once('playerProfile', async (profile) => {
+                let ranking = profile.account_profiles[0].ranking;
+
+                //We need to check if ranking is set; if not, the user has not added us to their friend list
+                if(ranking !== null)
+                {
+                    logger.debug(`Got rank ${ranking.rank_id} for steam64id ${steam64id}`);
+                    resolve(ranking.rank_id);
+                }
+                else
+                {
+                    resolve(null);
+                }
+            });
+
+            this.CSGOCli.playerProfileRequest(this.CSGOCli.ToAccountID(steam64id));
+        }));
     }
 
 
 
     /**
-     * Returns the profile URL of the bot
+     * Handles changes of relationship. Important when receiving friend requests from new users.
+     * @param steam64id
+     * @param relationshipStatus
      */
-    getSteamProfileUrl() {
-        return this.SteamProfileUrl;
-    };
+    async onRelationshipChange(steam64id, relationshipStatus) {
+        logger.debug(`New relationship event from ${steam64id} (relationship=${relationshipStatus})`);
+
+        //Null check
+        if (steam64id === undefined || relationshipStatus === undefined) {
+            return;
+        }
+
+
+        // The bot has been added. Check if there is an record in the database which is inactive
+        // so we can activate that user
+        if(relationshipStatus === steamApi.EFriendRelationship.RequestRecipient)
+        {
+            logger.debug(`Relationship event from ${steam64id}, status=${relationshipStatus}`);
+
+            // Check if user is registered
+            let isRegistered = await database.isRegisteredBySteam64Id(steam64id);
+            if(isRegistered)
+            {
+                // Accept Steam friend request and set user as active in database
+                database.setSteam64idActive(steam64id);
+                this.SteamFriends.addFriend(steam64id);
+
+                // Update the group of the user
+                let csgoRankId = await this.getCSGORankOfSteam64id(steam64id);
+                let tsUid = await database.getTsuid(steam64id);
+                await exchangeChannel.postMessage(`update_rank ${tsUid} ${csgoRankId}`);
+
+                //Log
+                logger.debug(`Relationship event from ${steam64id} is ok, added to friendlist and updated rank in Teamspeak`);
+            }
+            else
+            {
+                // We have gotten a friend request from a user which is not registered in the database
+                // We just decline this request
+                logger.debug(`Relationship event from ${steam64id}, but is not in database. removing...`);
+                this.SteamFriends.removeFriend(steam64id);
+            }
+        }
+
+
+        // The bot has been removed from a friendslist. We need to remove that user from the database too
+        else if (relationshipStatus === steamApi.EFriendRelationship.None) {
+            logger.debug(`Got removed from ${steam64id} friendlist, removing too...`);
+
+            //Check if user was really registered
+            let isRegistered = await database.isRegisteredBySteam64Id(steam64id);
+            if(isRegistered){
+                database.deleteIdentity(steam64id);
+                this.SteamFriends.removeFriend(steam64id);
+            }
+        }
+    }
+
+
+
+    async exchangeChannelOnMessage(msg) {
+        let cmd = msg.split(" ");
+
+        switch (cmd[0].toLowerCase()) {
+            case "request_update": {
+                let tsUid = cmd[1];
+                let steam64id = await database.getSteam64Id(tsUid);
+                let rankId = await this.getCSGORankOfSteam64id(steam64id);
+
+                await exchangeChannel.postMessage(`update_rank ${tsUid} ${rankId}`);
+            }
+        }
+    }
 
 
 
@@ -96,13 +201,13 @@ class Steam {
 
         //Friendrequest event
         this.SteamFriends.on('friend', (steam64id, relationshipStatus) => {
-            //_self.onRelationshipChange(steam64id, relationshipStatus);
+            this.onRelationshipChange(steam64id, relationshipStatus);
         });
 
 
         //Relationship event
         this.SteamFriends.on('relationships', (steam64id, relationshipStatus) => {
-            //_self.onRelationshipChange(steam64id, relationshipStatus);
+            this.onRelationshipChange(steam64id, relationshipStatus);
         });
 
 
@@ -132,6 +237,8 @@ class Steam {
                 logger.info("CSGO interface ready!");
             });
         });
+
+        exchangeChannel.addEventListener('message', (msg) => { this.exchangeChannelOnMessage(msg); });
     };
 
 

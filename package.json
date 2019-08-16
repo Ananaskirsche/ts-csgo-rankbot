@@ -13,6 +13,7 @@
     "steam": "^1.4.1",
     "ts3-nodejs-library": "^2.0.2",
     "winston": "^3.2.1",
-    "xmldoc": "^1.1.2"
+    "xmldoc": "^1.1.2",
+    "broadcast-channel": "^2.2.0"
   }
 }

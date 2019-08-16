@@ -23,7 +23,7 @@ if(!fs.existsSync("config/config.js")){
 }
 
 let ts = new Teamspeak();
-let steam = new Steam();
+let steam = new Steam(ts);
 
 steam.startSteam();
 ts.startTeamspeak();
