@@ -1,4 +1,3 @@
-const https = require("https");
 const logger = require('./logger')(__filename);
 const xmldoc = require("xmldoc");
 const rp = require('request-promise');
@@ -28,6 +27,7 @@ class Steam {
         this.CSGOCli = new csgo.CSGOClient(this.SteamUser, this.SteamGC, true);
         this.Teamspeak = teamspeak;
     }
+
 
 
     /**
@@ -121,7 +121,11 @@ class Steam {
     }
 
 
-
+    /**
+     * Event Handler for new messages received in the exchange data channel
+     * @param msg
+     * @returns {Promise<void>}
+     */
     async exchangeChannelOnMessage(msg) {
         let cmd = msg.split(" ");
 
@@ -139,7 +143,7 @@ class Steam {
 
 
     /**
-     *
+     * Initializes the Steam API and connects to the servers
      */
     startSteam() {
         logger.info("Starting steam interface");
@@ -249,7 +253,6 @@ class Steam {
      */
     static async getSteamIdFromProfile(communityUrl) {
 
-        let id = null;
         let data = await rp(communityUrl);
 
         //Parse XML
