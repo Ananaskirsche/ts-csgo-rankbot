@@ -220,6 +220,9 @@ class Teamspeak {
 
             //update command
             case "!update": {
+
+                //TODO: CHECK IF USER IS REGISTERED
+
                 exchangeChannel.postMessage(`request_update ${ev.invoker.uniqueIdentifier}`);
                 //TODO: IMPLEMENT
             }
@@ -290,7 +293,9 @@ class Teamspeak {
 
 
         this.ts3.on('textmessage', ev => {
-            Teamspeak.onMessageReceived(ev);
+            Teamspeak.onMessageReceived(ev).catch(err => {
+                console.log(err);
+            });
         });
         this.ts3.on("error", e => console.log(e.message));
         this.ts3.on("close", e => {

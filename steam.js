@@ -133,6 +133,11 @@ class Steam {
             case "request_update": {
                 let tsUid = cmd[1];
                 let steam64id = await database.getSteam64Id(tsUid);
+
+                if(steam64id == null){
+                    return;
+                }
+
                 let rankId = await this.getCSGORankOfSteam64id(steam64id);
 
                 await exchangeChannel.postMessage(`update_rank ${tsUid} ${rankId}`);
@@ -255,7 +260,7 @@ class Steam {
 
         let data = await rp(communityUrl);
 
-        //Parse XML
+        //Parse XML (we need to get the steamID64 tag)
         let document = new xmldoc.XmlDocument(data);
         let child = document.childNamed("steamID64");
 

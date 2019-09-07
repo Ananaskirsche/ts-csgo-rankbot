@@ -26,7 +26,12 @@ exports.getSteam64Id = function(tsuid){
                 return reject(err);
             }
 
-            resolve(result[0].steam64id);
+            if(result.length > 0){
+                if(result[0].hasOwnProperty("steam64id")){
+                    resolve(result[0].steam64id);
+                }
+            }
+            resolve(null);
         });
 
         connection.commit();
