@@ -1,8 +1,6 @@
 const Teamspeak = require('./teamspeak');
 const Steam = require('./steam');
 
-const SteamHelper = require('./helpers/SteamHelper');
-const TeamspeakHelper = require('./helpers/TeamspeakHelper');
 const fs = require('fs');
 const logDir = "logs";
 
