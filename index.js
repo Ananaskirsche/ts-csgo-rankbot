@@ -1,5 +1,6 @@
 const Teamspeak = require('./teamspeak');
 const Steam = require('./steam');
+const database = require("./database");
 
 const fs = require('fs');
 const logDir = "logs";
@@ -17,11 +18,18 @@ if(!fs.existsSync("config/config.js")){
     }
 
     console.log("The bot was not configured! Please configure it properly and then try again!");
-    return;
+    process.exit(1);
 }
 
+
+if(!database.checkIfDatabaseIsOnline()){
+    console.log("Could not connect to database! Please check config and database!");
+    process.exit(1);
+}
+
+
 let ts = new Teamspeak();
-let steam = new Steam(ts);
+let steam = new Steam();
 
 steam.startSteam();
 ts.startTeamspeak();

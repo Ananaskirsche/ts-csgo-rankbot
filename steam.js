@@ -17,15 +17,13 @@ class Steam {
 
     /**
      * Constructor
-     * @param teamspeak An instance of teamspeak.js so we can access Teamspeak methods
      */
-    constructor(teamspeak){
+    constructor(){
         this.SteamClient = new steamApi.SteamClient();
         this.SteamUser = new steamApi.SteamUser(this.SteamClient);
         this.SteamGC = new steamApi.SteamGameCoordinator(this.SteamClient, 730);
         this.SteamFriends = new steamApi.SteamFriends(this.SteamClient);
         this.CSGOCli = new csgo.CSGOClient(this.SteamUser, this.SteamGC, true);
-        this.Teamspeak = teamspeak;
     }
 
 
@@ -82,7 +80,7 @@ class Steam {
             logger.debug(`Relationship event from ${steam64id}, status=${relationshipStatus}`);
 
             // Check if user is registered
-            let isRegistered = await database.isRegisteredBySteam64Id(steam64id);
+            let isRegistered = await database.isRegisteredBySteam64Id(steam64id, true);
             if(isRegistered)
             {
                 // Accept Steam friend request and set user as active in database
@@ -142,6 +140,20 @@ class Steam {
 
                 await exchangeChannel.postMessage(`update_rank ${tsUid} ${rankId}`);
             }
+            break;
+            case "update_tick_get_rank": {
+                let tsUid = cmd[1];
+                let steam64id = await database.getSteam64Id(tsUid);
+
+                if(steam64id == null){
+                    return;
+                }
+
+                let rankId = await this.getCSGORankOfSteam64id(steam64id);
+
+                await exchangeChannel.postMessage(`update_tick_update_rank ${tsUid} ${rankId}`);
+            }
+            break;
         }
     }
 

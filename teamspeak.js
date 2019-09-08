@@ -34,7 +34,7 @@ class Teamspeak {
      * Sends a message to the provided tsUid
      * @param tsUid
      * @param message
-     * @return Returns if successful
+     * @return Promise{boolean}
      */
     async messageUser(tsUid, message){
         //We first need to get the TeamspeakClient
@@ -52,6 +52,55 @@ class Teamspeak {
 
 
 
+    //Returns the Channel ID for a given CSGO Rank ID
+    static getRankGroupFromRankId(rankId){
+        switch (rankId)
+        {
+            case "0":
+                return config.tsRankSgids.unranked;
+            case "1":
+                return config.tsRankSgids.silver_1;
+            case "2":
+                return config.tsRankSgids.silver_2;
+            case "3":
+                return config.tsRankSgids.silver_3;
+            case "4":
+                return config.tsRankSgids.silver_4;
+            case "5":
+                return config.tsRankSgids.silver_elite;
+            case "6":
+                return config.tsRankSgids.silver_elite_master;
+            case "7":
+                return config.tsRankSgids.gold_nova_1;
+            case "8":
+                return config.tsRankSgids.gold_nova_2;
+            case "9":
+                return config.tsRankSgids.gold_nova_3;
+            case "10":
+                return config.tsRankSgids.gold_nova_master;
+            case "11":
+                return config.tsRankSgids.master_guardian_1;
+            case "12":
+                return config.tsRankSgids.master_guardian_2;
+            case "13":
+                return config.tsRankSgids.master_guardian_elite;
+            case "14":
+                return config.tsRankSgids.distinguished_master_guardian;
+            case "15":
+                return config.tsRankSgids.legendary_eagle;
+            case "16":
+                return config.tsRankSgids.legendary_eagle_master;
+            case "17":
+                return config.tsRankSgids.supreme_master;
+            case "18":
+                return config.tsRankSgids.global_elite;
+            default:
+                return config.tsRankSgids.unranked;
+        }
+    }
+
+
+
     async setRank(tsUid, csgoRankId){
         //We first need to get the TeamspeakClient
         let tsClientList = await this.ts3.clientList({client_type: 0, client_unique_identifier: tsUid});
@@ -61,73 +110,7 @@ class Teamspeak {
         if(tsClientList.length > 0)
         {
             let tsClient = tsClientList[0];
-            let newCsgoRankSgid = null;
-
-            //Get the ranks sgid
-            switch (csgoRankId)
-            {
-                case "0":
-                    newCsgoRankSgid = config.tsRankSgids.unranked;
-                    break;
-                case "1":
-                    newCsgoRankSgid = config.tsRankSgids.silver_1;
-                    break;
-                case "2":
-                    newCsgoRankSgid = config.tsRankSgids.silver_2;
-                    break;
-                case "3":
-                    newCsgoRankSgid = config.tsRankSgids.silver_3;
-                    break;
-                case "4":
-                    newCsgoRankSgid = config.tsRankSgids.silver_4;
-                    break;
-                case "5":
-                    newCsgoRankSgid = config.tsRankSgids.silver_elite;
-                    break;
-                case "6":
-                    newCsgoRankSgid = config.tsRankSgids.silver_elite_master;
-                    break;
-                case "7":
-                    newCsgoRankSgid = config.tsRankSgids.gold_nova_1;
-                    break;
-                case "8":
-                    newCsgoRankSgid = config.tsRankSgids.gold_nova_2;
-                    break;
-                case "9":
-                    newCsgoRankSgid = config.tsRankSgids.gold_nova_3;
-                    break;
-                case "10":
-                    newCsgoRankSgid = config.tsRankSgids.gold_nova_master;
-                    break;
-                case "11":
-                    newCsgoRankSgid = config.tsRankSgids.master_guardian_1;
-                    break;
-                case "12":
-                    newCsgoRankSgid = config.tsRankSgids.master_guardian_2;
-                    break;
-                case "13":
-                    newCsgoRankSgid = config.tsRankSgids.master_guardian_elite;
-                    break;
-                case "14":
-                    newCsgoRankSgid = config.tsRankSgids.distinguished_master_guardian;
-                    break;
-                case "15":
-                    newCsgoRankSgid = config.tsRankSgids.legendary_eagle;
-                    break;
-                case "16":
-                    newCsgoRankSgid = config.tsRankSgids.legendary_eagle_master;
-                    break;
-                case "17":
-                    newCsgoRankSgid = config.tsRankSgids.supreme_master;
-                    break;
-                case "18":
-                    newCsgoRankSgid = config.tsRankSgids.global_elite;
-                    break;
-                default:
-                    newCsgoRankSgid = config.tsRankSgids.unranked;
-                    break;
-            }
-
+            let newCsgoRankSgid = Teamspeak.getRankGroupFromRankId(csgoRankId);
 
             //Remove the user from all previous ranks
             let clientInfo = await tsClient.getInfo();
@@ -178,19 +161,26 @@ class Teamspeak {
         switch (cmd[0].toLocaleLowerCase()) {
             //Help command
             case "!help": {
-                ev.invoker.message("!register - Verknüpft deine TS-Identität mit deinem Steamprofil!");
-                ev.invoker.message("!status - Zeigt, ob du bereits verknüpft bist!");
-                ev.invoker.message("!update - Überprüft sofort, ob sich dein Rang geändert hat!");
+                await client.message("!register - Verknüpft deine TS-Identität mit deinem Steamprofil!");
+                await client.message("!status - Zeigt, ob du bereits verknüpft bist!");
+                await client.message("!update - Überprüft sofort, ob sich dein Rang geändert hat!");
             }
             break;
 
 
             //Register command
             case "!register": {
+                //Check if user is already registered
+                if(await database.isRegisteredByTsUid(client.uniqueIdentifier))
+                {
+                    await client.message("Du bist bereits registriert! Benutze !update um deinen Rang sofort zu updaten.");
+                   return;
+                }
+
                 //Args lenght checke B
                 if (cmd.length !== 2) {
-                    client.message("!register <your steam profile url>");
-                    return null;
+                    await client.message("!register <your steam profile url>");
+                    return;
                 }
 
                 logger.debug(`User ${client.nickname} issued register command`);
@@ -220,11 +210,28 @@ class Teamspeak {
 
             //update command
             case "!update": {
+                let isRegistered = await database.isRegisteredByTsUid(client.uniqueIdentifier);
 
-                //TODO: CHECK IF USER IS REGISTERED
+                if(isRegistered){
+                    exchangeChannel.postMessage(`request_update ${ev.invoker.uniqueIdentifier}`);
+                }
+                else{
+                    await client.message("Du bist noch nicht registriert! Bitte registriere dich erst mit !register");
+                }
+            }
+            break;
 
-                exchangeChannel.postMessage(`request_update ${ev.invoker.uniqueIdentifier}`);
-                //TODO: IMPLEMENT
+
+            //status command
+            case "!status": {
+                let isRegistered = await database.isRegisteredByTsUid(client.uniqueIdentifier);
+
+                if(isRegistered){
+                    await client.message("Du bist registriert! Benutze !update um deinen Rang zu updaten!");
+                }
+                else{
+                    await client.message("Du bist noch nicht registriert! Benutze !register um dich zu registrieren!");
+                }
             }
             break;
         }
@@ -242,6 +249,30 @@ class Teamspeak {
 
                 await this.setRank(tsUid, csgoRankId)
                     .catch((err) => {console.log(err)});
+            }
+            break;
+            case "update_tick_update_rank": {
+                let tsUid = cmd[1];
+                let csgoRankId = cmd[2];
+                let rankChannelId = Teamspeak.getRankGroupFromRankId(csgoRankId);
+                let client = await this.ts3.getClientByUID(tsUid);
+                let clientGroups = client.servergroups;
+
+                let clientIsInGroup = false;
+
+                // Iterate through server groups and check if the client is in the server group for his rank
+                // If he is not clientIsInGroup will be false and the update process will be triggered
+                for(let i = 0; i < clientGroups.length; i++){
+                    let group = clientGroups[i].toString();
+                    if(group === rankChannelId.toString()){
+                        clientIsInGroup = true;
+                    }
+                }
+
+                // Trigger update process
+                if(!clientIsInGroup){
+                    this.setRank(tsUid, csgoRankId);
+                }
             }
             break;
         }
@@ -307,9 +338,36 @@ class Teamspeak {
 
         //Registering exchangeChannelListener
         exchangeChannel.addEventListener('message', (msg) => {this.exchangeChannelMessageReceived(msg).catch((err) => {console.log(err)})});
+
+        //Start the update tick
+        setInterval(() => {
+            this.updateTick().catch( () => {
+                logger.error("An error occurred during update tick!");
+            });
+        }, config.botConfig.checkIntervalTime * 1000 * 60);
     }
 
 
+
+
+    /**
+     * Updates the rank of all registered players currently online
+     */
+    async updateTick() {
+        //get all clients online
+        let onlineClients = await this.ts3.clientList({client_type: 0});
+
+        for(let i = 0; i < onlineClients.length; i++){
+            let client = onlineClients[i];
+
+            //check if client is registered
+            if(!await database.isRegisteredByTsUid(client.uniqueIdentifier)){
+                return;
+            }
+
+            await exchangeChannel.postMessage(`update_tick_get_rank ${client.uniqueIdentifier}`);
+        }
+    }
 }
 
 module.exports = Teamspeak;

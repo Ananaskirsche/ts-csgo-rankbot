@@ -1,5 +1,41 @@
 const config = require('./config/config.js');
 const mysql = require('mysql');
+const logger = require('./logger')(__filename);
+
+/**
+ * Checks if database server is online by connecting and disconnecting
+ * @returns boolean
+ */
+exports.checkIfDatabaseIsOnline = function(){
+    try{
+        let connection = mysql.createConnection({
+            host: config.dbConfig.host,
+            port: config.dbConfig.port,
+            user: config.dbConfig.username,
+            password: config.dbConfig.password,
+            database: config.dbConfig.database
+        });
+
+        connection.connect();
+
+        connection.ping(function (err) {
+            if(err) {
+                //Bit dirty, but works
+                logger.error("Could not connect to database! Please check config and database!");
+                process.exit(1);
+            }
+        });
+
+        connection.end();
+    }
+    catch (e) {
+        return false;
+    }
+
+    return true;
+};
+
+
 
 /**
  * Returns the steam64id for the connected ts uid
@@ -66,7 +102,13 @@ exports.getTsuid = function(steam64id){
                 return reject(err);
             }
 
-            resolve(result[0].tsuid);
+
+            if(result.length > 0){
+                if(result[0].hasOwnProperty("tsuid")){
+                    resolve(result[0].tsuid);
+                }
+            }
+            resolve(null);
         });
 
         connection.commit();
@@ -221,7 +263,7 @@ exports.isRegisteredByTsUid = function (tsuid) {
 
         connection.connect();
 
-        let sql = "SELECT COUNT(steam64id) AS 'idCount' FROM profiles WHERE tsuid = ?";
+        let sql = "SELECT COUNT(steam64id) AS 'idCount' FROM profiles WHERE tsuid = ? AND active = 1";
         let inserts = [tsuid];
         sql = mysql.format(sql, inserts);
 
@@ -249,9 +291,10 @@ exports.isRegisteredByTsUid = function (tsuid) {
 
 /**
  * Checks if user is registered by checking given steam64id
- * @param steam64id
+ * @param steam64id The steam64id to look for
+ * @param inactive Show also inactive
  */
-exports.isRegisteredBySteam64Id = function (steam64id) {
+exports.isRegisteredBySteam64Id = function (steam64id, inactive = false) {
     return new Promise((resolve, reject) => {
         let connection = mysql.createConnection({
             host: config.dbConfig.host,
@@ -264,6 +307,11 @@ exports.isRegisteredBySteam64Id = function (steam64id) {
         connection.connect();
 
         let sql = "SELECT COUNT(steam64id) AS 'idCount' FROM profiles WHERE steam64id = ?";
+
+        if(!inactive){
+            sql += " AND active = 1";
+        }
+
         let inserts = [steam64id];
         sql = mysql.format(sql, inserts);
 
