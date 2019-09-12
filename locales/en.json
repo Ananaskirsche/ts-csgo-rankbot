@@ -1,0 +1,11 @@
+{
+  "register_command_help_text": "!register - Link your TS-Identity with your Steam profile",
+  "status_command_help_text": "!status - Checks if you are already registered",
+  "update_command_help_text": "!update - Instantly checks if your rank has changed",
+  "register_command_help_usage": "!register <your Steam profile url>",
+  "wrong_profile_url": "Your profile url seems to be wrong!",
+  "add_bot": "Please add [url=%s]the bot[/url] to your Steam friends list!",
+  "registered": "You are registered! Please use !update to immediately update your rank!",
+  "not_registered": "You are not registered yet! Please use !register to link your TS identity to your Steam profile!",
+  "already_registered": "You are already registered! Please use !update to immediately update your rank!"
+}

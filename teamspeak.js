@@ -6,7 +6,7 @@ const config = require("./config/config");
 const logger = require('./logger')(__filename);
 const BroadcastChannel = require('broadcast-channel');
 const exchangeChannel = new BroadcastChannel('exchange');
-
+const i18n = require("i18n");
 
 
 class Teamspeak {
@@ -161,9 +161,9 @@ class Teamspeak {
         switch (cmd[0].toLocaleLowerCase()) {
             //Help command
             case "!help": {
-                await client.message("!register - Verknüpft deine TS-Identität mit deinem Steamprofil!");
-                await client.message("!status - Zeigt, ob du bereits verknüpft bist!");
-                await client.message("!update - Überprüft sofort, ob sich dein Rang geändert hat!");
+                await client.message(i18n.__("register_command_help_text"));
+                await client.message(i18n.__("status_command_help_text"));
+                await client.message(i18n.__("update_command_help_text"));
             }
             break;
 
@@ -173,13 +173,13 @@ class Teamspeak {
                 //Check if user is already registered
                 if(await database.isRegisteredByTsUid(client.uniqueIdentifier))
                 {
-                    await client.message("Du bist bereits registriert! Benutze !update um deinen Rang sofort zu updaten.");
-                   return;
+                    await client.message(i18n.__("already_registered"));
+                    return;
                 }
 
                 //Args lenght checke B
                 if (cmd.length !== 2) {
-                    await client.message("!register <your steam profile url>");
+                    await client.message(i18n.__("register_command_help_usage"));
                     return;
                 }
 
@@ -199,10 +199,10 @@ class Teamspeak {
                     database.addIdentity(tsUid, steam64id);
 
                     //Message the user to add the bot account
-                    await client.message("Bitte füge [url=" + SteamHandler.steamProfileUrl +"]den Bot[/url] zu deiner Steam Freundesliste hinzu!");
+                    await client.message(i18n.__("add_bot", SteamHandler.steamProfileUrl ));
 
                 } else {
-                    await ev.invoker.message("Deine Profil-URL scheint nicht richtig zu sein!");
+                    await ev.invoker.message(i18n.__("wrong_profile_url"));
                 }
             }
             break;
@@ -213,10 +213,10 @@ class Teamspeak {
                 let isRegistered = await database.isRegisteredByTsUid(client.uniqueIdentifier);
 
                 if(isRegistered){
-                    exchangeChannel.postMessage(`request_update ${ev.invoker.uniqueIdentifier}`);
+                    await exchangeChannel.postMessage(`request_update ${ev.invoker.uniqueIdentifier}`);
                 }
                 else{
-                    await client.message("Du bist noch nicht registriert! Bitte registriere dich erst mit !register");
+                    await client.message(i18n.__("not_registered"));
                 }
             }
             break;
@@ -227,10 +227,10 @@ class Teamspeak {
                 let isRegistered = await database.isRegisteredByTsUid(client.uniqueIdentifier);
 
                 if(isRegistered){
-                    await client.message("Du bist registriert! Benutze !update um deinen Rang zu updaten!");
+                    await client.message(i18n.__("registered"));
                 }
                 else{
-                    await client.message("Du bist noch nicht registriert! Benutze !register um dich zu registrieren!");
+                    await client.message(i18n.__("not_registered"));
                 }
             }
             break;
@@ -281,6 +281,15 @@ class Teamspeak {
 
 
     startTeamspeak() {
+        //Init i18n
+        i18n.configure({
+           locales: ['en', 'de'],
+           directory: __dirname + "/locales"
+        });
+
+        i18n.setLocale(config.botConfig.language);
+
+
         //Logging
         logger.debug("Initializing teamspeak interface");
         logger.info("Connecting to teamspeak...");

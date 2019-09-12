@@ -24,6 +24,8 @@ exports.dbConfig = {
 };
 
 exports.botConfig = {
+    //Supported languages: en, de
+    language: "en",
     greetingMessage: "Welcome!",
     //Every n minute check for rank change
     checkIntervalTime: 10
