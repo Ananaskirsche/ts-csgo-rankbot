@@ -22,14 +22,14 @@ if(!fs.existsSync("config/config.js")){
 }
 
 
-if(!database.checkIfDatabaseIsOnline()){
+database.connect().then(() => {
+    let ts = new Teamspeak();
+    let steam = new Steam();
+    
+    steam.startSteam();
+    ts.startTeamspeak();
+}).catch(e => {
     console.log("Could not connect to database! Please check config and database!");
+    console.log(e)
     process.exit(1);
-}
-
-
-let ts = new Teamspeak();
-let steam = new Steam();
-
-steam.startSteam();
-ts.startTeamspeak();
+})
