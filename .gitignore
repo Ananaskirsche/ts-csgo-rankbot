@@ -1,5 +1,7 @@
-# dont accidentaly push the config
+# dont accidentaly push config
 config/config.js
+# dont accidentaly push logs
+logs
 
 #ignore node_modules
 node_modules
