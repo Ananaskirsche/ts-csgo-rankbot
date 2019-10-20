@@ -251,7 +251,7 @@ class Steam {
         this.SteamUser.on("updateMachineAuth", (result, callback) => {
             if (!result || !result.bytes) {
                 logger.warn("received invalid updateMachineAuth response!")
-                logger.warn("dont post this error message publicly!!!")
+                logger.warn("dont post the below data publicly!!!")
                 return logger.warn(result)
             }
             callback({ sha_file: crypto.createHash('sha1').update(result.bytes).digest() })
