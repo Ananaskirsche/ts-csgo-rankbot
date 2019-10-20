@@ -1,4 +1,4 @@
-const {TeamSpeak} = require("ts3-nodejs-library");
+const { TeamSpeak, QueryProtocol } = require("ts3-nodejs-library");
 const SteamHandler = require("./steam");
 const URL = require("url");
 const database = require("./database");
@@ -37,16 +37,22 @@ class Teamspeak {
      * @return Promise{boolean}
      */
     async messageUser(tsUid, message){
-        //We first need to get the TeamspeakClient
-        let tsClientList = await this.ts3.clientList({client_type: 0, client_unique_identifier: tsUid});
+        try {
+            //We first need to get the TeamspeakClient
+            let tsClientList = await this.ts3.clientList({client_type: 0, client_unique_identifier: tsUid});
 
-        //Check if tsClientList contains at least one client
-        if(tsClientList.length > 0)
-        {
-            let tsClient = tsClientList[0];
-            tsClient.message(message)
-                .then(() => {return true;})
-                .catch(() => {return false;});
+            //Check if tsClientList contains at least one client
+            if(tsClientList.length > 0)
+            {
+                let tsClient = tsClientList[0];
+                await tsClient.message(message);
+                return true
+            }
+                
+        } catch (e) {
+            logger.error(`Error while trying to message user with ${tsUid}`)
+            logger.error(e)
+            return false
         }
     }
 
@@ -102,42 +108,45 @@ class Teamspeak {
 
 
     async setRank(tsUid, csgoRankId){
-        //We first need to get the TeamspeakClient
-        let tsClientList = await this.ts3.clientList({client_type: 0, client_unique_identifier: tsUid});
+        try {
+
+            //We first need to get the TeamspeakClient
+            let tsClientList = await this.ts3.clientList({client_type: 0, client_unique_identifier: tsUid});
 
 
-        //Check if tsClientList contains at least one client
-        if(tsClientList.length > 0)
-        {
-            let tsClient = tsClientList[0];
-            let newCsgoRankSgid = Teamspeak.getRankGroupFromRankId(csgoRankId);
-
-            //Remove the user from all previous ranks
-            let clientInfo = await tsClient.getInfo();
-            let clientGroups = clientInfo.client_servergroups;
-            let serverRankSgids = [];
-
-            //Load all sgids from config into array
-            for(let value of Object.values(config.tsRankSgids))
+            //Check if tsClientList contains at least one client
+            if(tsClientList.length > 0)
             {
-                serverRankSgids.push(value);
+                let tsClient = tsClientList[0];
+                let newCsgoRankSgid = Teamspeak.getRankGroupFromRankId(csgoRankId);
+
+                //Remove the user from all previous ranks
+                let clientGroups = tsClient.servergroups;
+                let serverRankSgids = [];
+
+                //Load all sgids from config into array
+                for(let value of Object.values(config.tsRankSgids))
+                {
+                    serverRankSgids.push(value);
+                }
+
+                // Filter the list of ranks which are included in the server configuration and are assigned to the client
+                // This will give us a list of ranks we have to remove
+                let sgidIntersection = clientGroups.filter(x => serverRankSgids.includes(x));
+
+                // remove each group from the server client
+                await tsClient.delGroups(sgidIntersection);
+
+                // Assign the new rank to the client
+                await tsClient.addGroups(newCsgoRankSgid);
+                //await tsClient.addGroups(6);
+
+                logger.debug(`Updated skill group of user ${tsClient.nickname}`);
             }
-
-            // Filter the list of ranks which are included in the server configuration and are assigned to the client
-            // This will give us a list of ranks we have to remove
-            let sgidIntersection = clientGroups.filter(x => serverRankSgids.includes(x));
-
-            // Iterate through sgidIntersection and remove each group from the server client
-            for(let i = 0; i < sgidIntersection.length; i++)
-            {
-                await tsClient.delGroups(sgidIntersection[i].toString());
-            }
-
-            // Assign the new rank to the client
-            await tsClient.addGroups(newCsgoRankSgid);
-            //await tsClient.addGroups(6);
-
-            logger.debug(`Updated skill group of user ${tsClient.nickname}`);
+            
+        } catch (e) {
+            logger.error(`Error while trying to handle groups of uid ${tsUid}`)
+            logger.error(e)
         }
     }
 
@@ -145,95 +154,100 @@ class Teamspeak {
 
 
     static async onMessageReceived(ev) {
-        //The Targetmode (1 = Client, 2 = Channel, 3 = Virtual Server)
-        if (ev.targetmode !== 1 || ev.invoker.isQuery() === true) {
-            //Nachricht wird verworfen, wenn sie nicht direkt an den Bot geht
-            return null;
-        }
-
-        let client = ev.invoker;
-        let cmd = ev.msg.split(" ");
-
-
-        logger.debug(`Received new message from ${client.nickname}`);
-
-
-        switch (cmd[0].toLocaleLowerCase()) {
-            //Help command
-            case "!help": {
-                await client.message(i18n.__("register_command_help_text"));
-                await client.message(i18n.__("status_command_help_text"));
-                await client.message(i18n.__("update_command_help_text"));
+        try {
+            //The Targetmode (1 = Client, 2 = Channel, 3 = Virtual Server)
+            if (ev.targetmode !== 1 || ev.invoker.isQuery() === true) {
+                //Nachricht wird verworfen, wenn sie nicht direkt an den Bot geht
+                return null;
             }
-            break;
+
+            let client = ev.invoker;
+            let cmd = ev.msg.split(" ");
 
 
-            //Register command
-            case "!register": {
-                //Check if user is already registered
-                if(await database.isRegisteredByTsUid(client.uniqueIdentifier))
-                {
-                    await client.message(i18n.__("already_registered"));
-                    return;
+            logger.debug(`Received new message from ${client.nickname}`);
+
+
+            switch (cmd[0].toLocaleLowerCase()) {
+                //Help command
+                case "!help": {
+                    await client.message(i18n.__("register_command_help_text"));
+                    await client.message(i18n.__("status_command_help_text"));
+                    await client.message(i18n.__("update_command_help_text"));
                 }
+                break;
 
-                //Args lenght checke B
-                if (cmd.length !== 2) {
-                    await client.message(i18n.__("register_command_help_usage"));
-                    return;
+
+                //Register command
+                case "!register": {
+                    //Check if user is already registered
+                    if(await database.isRegisteredByTsUid(client.uniqueIdentifier))
+                    {
+                        await client.message(i18n.__("already_registered"));
+                        return;
+                    }
+
+                    //Args lenght checke B
+                    if (cmd.length !== 2) {
+                        await client.message(i18n.__("register_command_help_usage"));
+                        return;
+                    }
+
+                    logger.debug(`User ${client.nickname} issued register command`);
+
+                    //Build community URL from parameter
+                    let communityUrl = cmd[1];
+                    communityUrl = communityUrl.replace("[URL]", "");
+                    communityUrl = communityUrl.replace("[/URL]", "");
+
+                    if (Teamspeak.isValidUrl(communityUrl)) {
+                        communityUrl += "/?xml=1"; //Get profile data as XML
+                        let steam64id = await SteamHandler.getSteamIdFromProfile(communityUrl);
+                        let tsUid = client.uniqueIdentifier;
+
+                        //Save Identity to database
+                        database.addIdentity(tsUid, steam64id);
+
+                        //Message the user to add the bot account
+                        await client.message(i18n.__("add_bot", SteamHandler.steamProfileUrl ));
+
+                    } else {
+                        await ev.invoker.message(i18n.__("wrong_profile_url"));
+                    }
                 }
+                break;
 
-                logger.debug(`User ${client.nickname} issued register command`);
 
-                //Build community URL from parameter
-                let communityUrl = cmd[1];
-                communityUrl = communityUrl.replace("[URL]", "");
-                communityUrl = communityUrl.replace("[/URL]", "");
+                //update command
+                case "!update": {
+                    let isRegistered = await database.isRegisteredByTsUid(client.uniqueIdentifier);
 
-                if (Teamspeak.isValidUrl(communityUrl)) {
-                    communityUrl += "/?xml=1"; //Get profile data as XML
-                    let steam64id = await SteamHandler.getSteamIdFromProfile(communityUrl);
-                    let tsUid = client.uniqueIdentifier;
-
-                    //Save Identity to database
-                    database.addIdentity(tsUid, steam64id);
-
-                    //Message the user to add the bot account
-                    await client.message(i18n.__("add_bot", SteamHandler.steamProfileUrl ));
-
-                } else {
-                    await ev.invoker.message(i18n.__("wrong_profile_url"));
+                    if(isRegistered){
+                        await exchangeChannel.postMessage(`request_update ${ev.invoker.uniqueIdentifier}`);
+                    }
+                    else{
+                        await client.message(i18n.__("not_registered"));
+                    }
                 }
+                break;
+
+
+                //status command
+                case "!status": {
+                    let isRegistered = await database.isRegisteredByTsUid(client.uniqueIdentifier);
+
+                    if(isRegistered){
+                        await client.message(i18n.__("registered"));
+                    }
+                    else{
+                        await client.message(i18n.__("not_registered"));
+                    }
+                }
+                break;
             }
-            break;
-
-
-            //update command
-            case "!update": {
-                let isRegistered = await database.isRegisteredByTsUid(client.uniqueIdentifier);
-
-                if(isRegistered){
-                    await exchangeChannel.postMessage(`request_update ${ev.invoker.uniqueIdentifier}`);
-                }
-                else{
-                    await client.message(i18n.__("not_registered"));
-                }
-            }
-            break;
-
-
-            //status command
-            case "!status": {
-                let isRegistered = await database.isRegisteredByTsUid(client.uniqueIdentifier);
-
-                if(isRegistered){
-                    await client.message(i18n.__("registered"));
-                }
-                else{
-                    await client.message(i18n.__("not_registered"));
-                }
-            }
-            break;
+        } catch (e) {
+            logger.error(`Error while trying to message event`)
+            logger.error(e)
         }
     }
 
@@ -297,14 +311,14 @@ class Teamspeak {
 
         //Create a new Connection
         this.ts3 = new TeamSpeak({
-            protocol: (config.tsConfig.ssh) ? 'ssh' : 'raw',
+            protocol: (config.tsConfig.ssh) ? QueryProtocol.SSH : QueryProtocol.RAW,
             host: config.tsConfig.host,
             queryport: config.tsConfig.queryport,
             serverport: config.tsConfig.serverport,
             username: config.tsConfig.username,
             password: config.tsConfig.password,
             nickname: config.tsConfig.nickname,
-            keepalive: true
+            keepAlive: true
         });
 
 
