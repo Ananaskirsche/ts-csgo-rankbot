@@ -1,0 +1,5 @@
+# dont accidentaly push the config
+config/config.js
+
+#ignore node_modules
+node_modules
