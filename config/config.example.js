@@ -1,7 +1,7 @@
 exports.tsConfig = {
     host: "localhost",
-    queryport: '10022',
-    serverport: '9987',
+    queryport: 10022,
+    serverport: 9987,
     username: 'serveradmin',
     password: 'secret',
     nickname: 'Alfredo',
@@ -17,7 +17,7 @@ exports.steamConfig = {
 
 exports.dbConfig = {
     host: "localhost",
-    port: "3306",
+    port: 3306,
     username: "",
     password: "",
     database: ""
