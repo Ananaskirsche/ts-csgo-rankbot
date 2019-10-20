@@ -1,6 +1,6 @@
 exports.tsConfig = {
     host: "localhost",
-    queryport: 10022,
+    queryport: 10011,
     serverport: 9987,
     username: 'serveradmin',
     password: 'secret',
