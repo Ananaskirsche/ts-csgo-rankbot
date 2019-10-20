@@ -1,0 +1,9 @@
+# dont accidentaly push config
+config/config.js
+config/.steamservers
+config/.steamauth
+# dont accidentaly push logs
+logs
+
+#ignore node_modules
+node_modules
