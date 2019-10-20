@@ -1,5 +1,6 @@
 const logger = require('./logger')(__filename);
 const xmldoc = require("xmldoc");
+const crypto = require("crypto")
 const rp = require('request-promise');
 const steamApi = require("steam");
 const csgo = require("csgo");
@@ -205,7 +206,7 @@ class Steam {
             }
             catch (e) {
                 logger.warn('Could not write new steam servers file!');
-                logger.warn(e.message);
+                logger.warn(e)
             }
 
             steamApi.servers = servers;
@@ -216,8 +217,50 @@ class Steam {
         //Steam Connected Event
         this.SteamClient.on('connected', function ()
         {
-            _self.SteamUser.logOn(config.steamConfig);
+            //check if file exists
+            fs.stat("./config/.steamauth", err => {
+                const loginConf = {
+                    account_name: config.steamConfig.account_name,
+                    password: config.steamConfig.password
+                }
+                if (err) {
+                    //log error but try to continue with authentication anyway
+                    logger.warn("Could not read stat from .steamauth file, this error is non fatal")
+                    logger.warn(err.message)
+                    if (config.steamConfig.auth_code.length > 0)
+                    loginConf.auth_code = config.steamConfig.auth_code
+                    _self.SteamUser.logOn(loginConf);
+                } else {
+                    logger.debug("using .steamauth file")
+                    //continue with sentry file
+                    fs.readFile("./config/.steamauth", "binary", (err, res) => {
+                        if (err) {
+                            logger.error("Could not read steam auth file!")
+                            logger.error(err)
+                            return process.exit(1)
+                        }
+                        loginConf.sha_sentryfile = crypto.createHash('sha1').update(Buffer.from(res, "binary")).digest()
+                        _self.SteamUser.logOn(loginConf)
+                    })
+                }
+            })
         });
+
+
+        //update sentryfile for 2fa
+        this.SteamUser.on("updateMachineAuth", (result, callback) => {
+            if (!result || !result.bytes) {
+                logger.warn("received invalid updateMachineAuth response!")
+                logger.warn("dont post this error message publicly!!!")
+                return logger.warn(result)
+            }
+            callback({ sha_file: crypto.createHash('sha1').update(result.bytes).digest() })
+            fs.writeFile("./config/.steamauth", result.bytes, "binary", err => {
+                if (!err) return logger.info("wrote new .steamauth file!")
+                logger.warn("Could not write machine authentication code to ./config/.steamauth!")
+                logger.warn(err)
+            })
+        })
 
 
         //Friendrequest event
@@ -234,29 +277,35 @@ class Steam {
 
         //Steam Login Event
         this.SteamClient.on('logOnResponse', (response) => {
-            if(response.eresult === steamApi.EResult.OK)
-            {
-                logger.info("Steam interface logged in successful");
 
-                //Set profile url
-                module.exports.steamProfileUrl = "https://steamcommunity.com/profiles/" + response.client_supplied_steamid;
+            switch(response.eresult) {
+                case steamApi.EResult.OK: 
+                    logger.info("Steam interface logged in successful");
+                    //Set profile url
+                    module.exports.steamProfileUrl = "https://steamcommunity.com/profiles/" + response.client_supplied_steamid;
+
+                    //Set online
+                    _self.SteamFriends.setPersonaState(steamApi.EPersonaState.Online);
+        
+                    //Start CSGO interface
+                    logger.info("Starting CSGO interface");
+                    _self.CSGOCli.launch();
+                    _self.CSGOCli.on('ready', () => logger.info("CSGO interface ready!"));
+                    return
+                
+                case steamApi.EResult.InvalidPassword:
+                    logger.error("Invalid Username or Password or Steam Guard code")
+                    return process.exit(1)
+
+                case steamApi.EResult.AccountLogonDenied:
+                    logger.error("Account Logon Denied! (Probably due to Invalid Steam Guard!)")
+                    return process.exit(1);
+
+                default: 
+                    logger.error(`Steam interface could not log in! (Status: ${response.eresult})`);
+                    console.log(steamApi.EResult, response)
             }
-            else
-            {
-                logger.error("Steam interface could not log in!");
-                process.exit(1);
-            }
 
-            //Set online
-            _self.SteamFriends.setPersonaState(steamApi.EPersonaState.Online);
-
-            //Start CSGO interface
-            logger.info("Starting CSGO interface");
-            _self.CSGOCli.launch();
-            _self.CSGOCli.on('ready', () =>
-            {
-                logger.info("CSGO interface ready!");
-            });
         });
 
         exchangeChannel.addEventListener('message', (msg) => { this.exchangeChannelOnMessage(msg); });

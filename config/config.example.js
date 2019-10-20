@@ -9,10 +9,18 @@ exports.tsConfig = {
     ts_welcomechannel_id: 0
 };
 
+/**
+ * you need to either turn off steam guard or provide the steam guard key
+ * which you receive via email or authenticator app
+ * start this application once to get an email notification
+ */
 exports.steamConfig = {
-    //Steam Guard is not supported, you need to turn it off
+
     account_name: "username",
-    password: "secret"
+    password: "password",
+
+    //steam guard code from email
+    auth_code: ""
 };
 
 exports.dbConfig = {
